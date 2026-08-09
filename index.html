@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#121217">
   <title>osu!taiko mami viewer</title>
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=20260810-0628">
 </head>
 <body>
   <main class="app-shell">
@@ -18,9 +18,12 @@
     </header>
 
     <section class="source-panel panel">
-      <div class="source-row">
-        <label class="file-button" for="oszInput">OSZを開く</label>
-        <input id="oszInput" type="file" hidden>
+      <div class="source-row native-file-row">
+        <div class="native-file-wrap">
+          <span class="label">OSZ FILE</span>
+          <!-- iPhone/iPad Safari対策: acceptを指定せず、hidden/label代理クリックも使わない。 -->
+          <input id="oszInput" class="native-file-input" type="file">
+        </div>
         <p id="fileName" class="file-name">.osz / .OSZ</p>
       </div>
 
@@ -124,16 +127,8 @@
 区間：—（Fade-in/out：含まない）</pre>
     </section>
 
-    <details class="debug-panel panel" open>
-      <summary>AUDIO DEBUG</summary>
-      <pre id="audioDebug">sampleRate: n/a Hz
-baseLatency: n/a ms
-outputLatency: n/a ms
-getOutputTimestamp: no
-engine position: 0.000 ms
-audible position: 0.000 ms
-engine - audible: 0.000 ms</pre>
-    </details>
+    <!-- 診断ロジック用。通常UIには表示しない。 -->
+    <pre id="audioDebug" hidden></pre>
 
     <section class="error-panel panel" id="errorCard" hidden>
       <strong>読み込みエラー</strong>
@@ -141,7 +136,7 @@ engine - audible: 0.000 ms</pre>
     </section>
   </main>
 
-  <script src="./vendor/jszip.min.js"></script>
-  <script src="./app.js"></script>
+  <script src="./vendor/jszip.min.js?v=3.10.1"></script>
+  <script src="./app.js?v=20260810-0628"></script>
 </body>
 </html>
