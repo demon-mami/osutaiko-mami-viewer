@@ -20,7 +20,6 @@
     <section class="source-panel panel">
       <div class="source-row">
         <label class="file-button" for="oszInput">OSZを開く</label>
-        <!-- iOS Filesで未知拡張子.oszが選択不可になるため accept は指定せず、JS側で拡張子判定する。 -->
         <input id="oszInput" type="file" hidden>
         <p id="fileName" class="file-name">.osz / .OSZ</p>
       </div>
@@ -46,34 +45,29 @@
             <span id="timeDisplay">00:00:000</span>
           </button>
         </div>
-        <div class="position-side">
-          <span id="kiaiBadge" class="kiai-badge">KIAI OFF</span>
-          <span id="durationDisplay" class="duration">00:00:000</span>
+
+        <div class="range-inline" aria-label="使用区間">
+          <button id="startMarkButton" class="mark-button start" type="button" disabled>START</button>
+          <button id="endMarkButton" class="mark-button end" type="button" disabled>END</button>
+          <div class="range-length-box">
+            <span>LENGTH</span>
+            <strong id="rangeLength">—</strong>
+          </div>
         </div>
       </div>
 
       <div class="transport-row" aria-label="再生操作">
-        <button id="prevHitButton" class="transport-button hit-jump" type="button" disabled aria-label="前のヒットポイント">‹ HIT</button>
         <button id="backButton" class="transport-button" type="button" disabled aria-label="5秒戻る">−5s</button>
         <button id="playButton" class="play-button" type="button" disabled aria-label="再生">▶</button>
         <button id="forwardButton" class="transport-button" type="button" disabled aria-label="5秒進む">+5s</button>
-        <button id="nextHitButton" class="transport-button hit-jump" type="button" disabled aria-label="次のヒットポイント">HIT ›</button>
       </div>
 
       <input id="seekBar" class="seek-bar" type="range" min="0" max="1" step="0.001" value="0" disabled aria-label="曲全体の再生位置">
-      <audio id="audio" preload="metadata"></audio>
-
-      <div class="mark-strip" aria-label="使用区間記録">
-        <span class="mark-label">RANGE</span>
-        <button id="startMarkButton" class="mark-button start" type="button" disabled>START</button>
-        <button id="endMarkButton" class="mark-button end" type="button" disabled>END</button>
-        <button id="clearRangeButton" class="clear-button" type="button" disabled>CLR</button>
-      </div>
 
       <div class="timeline-toolbar">
         <div class="timeline-title">
           <span class="label">OBJECT TIMELINE</span>
-          <span id="zoomLabel" class="zoom-label">±3.0s</span>
+          <span id="zoomLabel" class="zoom-label">±3s</span>
         </div>
         <div class="zoom-controls" aria-label="タイムライン拡大縮小">
           <button id="zoomOutButton" type="button" disabled aria-label="タイムラインを縮小">−</button>
@@ -85,7 +79,6 @@
 
       <div class="overview-head">
         <span class="label">SONG TIMELINE</span>
-        <span class="overview-note">Kiai / Range / Position</span>
       </div>
       <canvas id="overviewCanvas" aria-label="曲全体のKiaiと選択区間"></canvas>
     </section>
