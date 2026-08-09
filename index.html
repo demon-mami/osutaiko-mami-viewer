@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#121217">
   <title>osu!taiko mami viewer</title>
-  <link rel="stylesheet" href="./style.css?v=20260810-0648">
+  <link rel="stylesheet" href="./style.css?v=20260810-0855">
 </head>
 <body>
   <main class="app-shell">
@@ -40,14 +40,8 @@
     </section>
 
     <section class="editor-panel panel" aria-label="再生・ヒットポイント確認">
-      <div class="position-bar">
-        <div class="position-block">
-          <span class="label">POSITION</span>
-          <button id="copyTimeButton" class="time-copy" type="button" disabled aria-label="現在時刻をコピー">
-            <span id="timeDisplay">00:00:000</span>
-          </button>
-        </div>
-
+      <div class="range-bar">
+        <span class="label">RANGE</span>
         <div class="range-inline" aria-label="使用区間">
           <button id="startMarkButton" class="mark-button start" type="button" disabled>START</button>
           <button id="endMarkButton" class="mark-button end" type="button" disabled>END</button>
@@ -69,7 +63,7 @@
       <div class="timeline-toolbar">
         <div class="timeline-title">
           <span class="label">OBJECT TIMELINE</span>
-          <span id="zoomLabel" class="zoom-label">±3s</span>
+          <span id="zoomLabel" class="zoom-label">±0.5s</span>
         </div>
         <div class="zoom-controls" aria-label="タイムライン拡大縮小">
           <button id="zoomOutButton" type="button" disabled aria-label="タイムラインを縮小">−</button>
@@ -85,9 +79,12 @@
       <div class="overview-head">
         <span class="label">SONG TIMELINE</span>
       </div>
-      <div id="overviewViewport" class="overview-viewport" aria-label="曲全体のKiaiと選択区間">
+      <div id="overviewViewport" class="overview-viewport" aria-label="曲全体のKiai・BPM・現在位置">
         <canvas id="overviewStaticCanvas" class="overview-static"></canvas>
         <canvas id="overviewCursorCanvas" class="overview-cursor"></canvas>
+        <button id="copyTimeButton" class="song-time-copy" type="button" disabled aria-label="現在時刻をコピー">
+          <span id="timeDisplay">00:00:000</span>
+        </button>
       </div>
     </section>
 
@@ -135,22 +132,6 @@
   </main>
 
   <script src="./vendor/jszip.min.js?v=3.10.1"></script>
-  <script>
-    // Guard app.js while no parsed map is active. This also protects OSZ replacement.
-    (() => {
-      const viewport = document.getElementById('timelineViewport');
-      const diff = document.getElementById('difficultySelect');
-      const input = document.getElementById('oszInput');
-      if (!viewport || !diff || !input) return;
-
-      const hideTimeline = () => { viewport.style.display = 'none'; };
-      const sync = () => { viewport.style.display = diff.disabled ? 'none' : ''; };
-
-      hideTimeline();
-      input.addEventListener('change', hideTimeline, true);
-      new MutationObserver(sync).observe(diff, { attributes: true, attributeFilter: ['disabled'] });
-    })();
-  </script>
-  <script src="./app.js?v=20260810-0648"></script>
+  <script src="./app.js?v=20260810-0855"></script>
 </body>
 </html>
