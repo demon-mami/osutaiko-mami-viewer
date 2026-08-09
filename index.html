@@ -75,12 +75,18 @@
         </div>
       </div>
 
-      <canvas id="timelineCanvas" aria-label="現在位置周辺のTaikoヒットポイント"></canvas>
+      <div id="timelineViewport" class="timeline-viewport" aria-label="現在位置周辺のTaikoヒットポイント">
+        <canvas id="timelineStaticCanvas" class="timeline-static"></canvas>
+        <canvas id="timelineCursorCanvas" class="timeline-cursor"></canvas>
+      </div>
 
       <div class="overview-head">
         <span class="label">SONG TIMELINE</span>
       </div>
-      <canvas id="overviewCanvas" aria-label="曲全体のKiaiと選択区間"></canvas>
+      <div id="overviewViewport" class="overview-viewport" aria-label="曲全体のKiaiと選択区間">
+        <canvas id="overviewStaticCanvas" class="overview-static"></canvas>
+        <canvas id="overviewCursorCanvas" class="overview-cursor"></canvas>
+      </div>
     </section>
 
     <section class="output-panel panel">
@@ -117,6 +123,17 @@
 難易度：**—**
 区間：—（Fade-in/out：含まない）</pre>
     </section>
+
+    <details class="debug-panel panel" open>
+      <summary>AUDIO DEBUG</summary>
+      <pre id="audioDebug">sampleRate: n/a Hz
+baseLatency: n/a ms
+outputLatency: n/a ms
+getOutputTimestamp: no
+engine position: 0.000 ms
+audible position: 0.000 ms
+engine - audible: 0.000 ms</pre>
+    </details>
 
     <section class="error-panel panel" id="errorCard" hidden>
       <strong>読み込みエラー</strong>
