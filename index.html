@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111318">
+  <title>osu!taiko mami viewer</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">osu!taiko / mobile test</p>
+        <h1>osu!taiko mami viewer</h1>
+      </div>
+      <div id="statusBadge" class="status-badge">OSZ未読込</div>
+    </header>
+
+    <section class="card file-card">
+      <label class="file-button" for="oszInput">OSZを選択</label>
+      <input id="oszInput" type="file" accept=".osz,.zip,application/zip" hidden>
+      <p id="fileName" class="muted">端末内で解析します。ファイルはこのページから送信しません。</p>
+    </section>
+
+    <section class="card" id="mapSection" aria-disabled="true">
+      <label class="field-label" for="difficultySelect">難易度</label>
+      <select id="difficultySelect" disabled>
+        <option>OSZを読み込んでください</option>
+      </select>
+
+      <div class="song-info">
+        <strong id="songTitle">—</strong>
+        <span id="songMeta">—</span>
+      </div>
+    </section>
+
+    <section class="card player-card">
+      <div class="time-row">
+        <div>
+          <span class="field-label">現在位置</span>
+          <div id="timeDisplay" class="time-display">00:00:000</div>
+        </div>
+        <button id="copyTimeButton" class="ghost-button" type="button" disabled>時刻コピー</button>
+      </div>
+
+      <div class="transport-row">
+        <button id="backButton" class="round-button" type="button" disabled aria-label="5秒戻る">−5</button>
+        <button id="playButton" class="play-button" type="button" disabled aria-label="再生">▶</button>
+        <button id="forwardButton" class="round-button" type="button" disabled aria-label="5秒進む">+5</button>
+      </div>
+
+      <div class="hitsound-row">
+        <div>
+          <span class="field-label">Hitsound</span>
+          <span id="hitsoundStatus" class="hitsound-status">v3.2を譜面時刻へ自動同期</span>
+        </div>
+        <button id="hitsoundToggle" class="hitsound-toggle on" type="button">HS ON</button>
+      </div>
+
+      <input id="seekBar" class="seek-bar" type="range" min="0" max="1" step="0.001" value="0" disabled aria-label="曲位置">
+      <div class="seek-labels">
+        <span>00:00:000</span>
+        <span id="durationDisplay">00:00:000</span>
+      </div>
+
+      <audio id="audio" preload="metadata"></audio>
+    </section>
+
+    <section class="card timeline-card">
+      <div class="section-heading">
+        <div>
+          <span class="field-label">ヒットポイント</span>
+          <strong>現在位置 ±6秒</strong>
+        </div>
+        <span id="kiaiBadge" class="kiai-badge">KIAI OFF</span>
+      </div>
+
+      <canvas id="timelineCanvas" aria-label="ヒットポイントタイムライン"></canvas>
+
+      <div class="legend" aria-label="凡例">
+        <span><i class="dot don"></i>Don</span>
+        <span><i class="dot ka"></i>Ka</span>
+        <span><i class="dot big"></i>大音符</span>
+        <span><i class="kiai-chip"></i>Kiai</span>
+      </div>
+
+      <p class="hint">タイムラインをタップすると、その位置へ移動します。</p>
+    </section>
+
+    <section class="card range-card" id="rangeCard">
+      <div class="section-heading range-heading">
+        <div>
+          <span class="field-label">区間チェック</span>
+          <strong>START / ENDを記録</strong>
+        </div>
+        <span id="rangeStateBadge" class="range-state-badge">未選択</span>
+      </div>
+
+      <div class="range-points">
+        <div id="startPointCard" class="range-point">
+          <div class="range-point-head">
+            <span class="range-check" aria-hidden="true">✓</span>
+            <div class="range-point-copy">
+              <span class="range-label start">START</span>
+              <strong id="startTime">未選択</strong>
+              <span id="startMeta">現在位置または最寄りHitを登録</span>
+            </div>
+          </div>
+          <div class="range-point-actions">
+            <button id="startNowButton" class="range-button" type="button" disabled>現在位置</button>
+            <button id="startHitButton" class="range-button" type="button" disabled>最寄りHit</button>
+            <button id="startJumpButton" class="range-button subtle" type="button" disabled>位置へ</button>
+          </div>
+        </div>
+
+        <div id="endPointCard" class="range-point">
+          <div class="range-point-head">
+            <span class="range-check" aria-hidden="true">✓</span>
+            <div class="range-point-copy">
+              <span class="range-label end">END</span>
+              <strong id="endTime">未選択</strong>
+              <span id="endMeta">現在位置または最寄りHitを登録</span>
+            </div>
+          </div>
+          <div class="range-point-actions">
+            <button id="endNowButton" class="range-button" type="button" disabled>現在位置</button>
+            <button id="endHitButton" class="range-button" type="button" disabled>最寄りHit</button>
+            <button id="endJumpButton" class="range-button subtle" type="button" disabled>位置へ</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="rangeSummary" class="range-summary">
+        <div>
+          <span>区間</span>
+          <strong id="rangeText">—</strong>
+        </div>
+        <div>
+          <span>区間長</span>
+          <strong id="rangeLength">—</strong>
+        </div>
+        <div>
+          <span>区間内Hit</span>
+          <strong id="rangeHitCount">—</strong>
+        </div>
+      </div>
+      <p id="rangeWarning" class="range-warning" hidden>ENDがSTARTより前です。どちらかを選び直してください。</p>
+
+      <div class="range-copy-actions">
+        <button id="copyRangeButton" class="copy-primary" type="button" disabled>区間をコピー</button>
+        <button id="copyRangeDetailsButton" class="range-button" type="button" disabled>詳細コピー</button>
+        <button id="clearRangeButton" class="range-button danger" type="button" disabled>解除</button>
+      </div>
+
+      <p class="hint">「最寄りHit」は現在位置から最も近い実ヒットポイントへ正確に合わせます。選択位置はタイムラインにも残ります。</p>
+    </section>
+
+    <section class="card overview-card">
+      <span class="field-label">全体ビュー / Kiai区間 / 選択区間</span>
+      <canvas id="overviewCanvas" aria-label="曲全体の概要"></canvas>
+      <p class="hint">全体ビューをタップして大きくシークできます。</p>
+    </section>
+
+    <section class="card stats-card">
+      <div><span>Don</span><strong id="donCount">0</strong></div>
+      <div><span>Ka</span><strong id="kaCount">0</strong></div>
+      <div><span>大音符</span><strong id="bigCount">0</strong></div>
+      <div><span>Kiai区間</span><strong id="kiaiCount">0</strong></div>
+    </section>
+
+    <section class="card error-card" id="errorCard" hidden>
+      <strong>読み込みエラー</strong>
+      <p id="errorMessage"></p>
+    </section>
+  </main>
+
+  <script src="./vendor/jszip.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
