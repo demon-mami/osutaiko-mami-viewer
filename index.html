@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#121217">
   <title>osu!taiko mami viewer</title>
-  <link rel="stylesheet" href="./style.css?v=20260810-0645">
+  <link rel="stylesheet" href="./style.css?v=20260810-0648">
 </head>
 <body>
   <main class="app-shell">
@@ -136,17 +136,21 @@
 
   <script src="./vendor/jszip.min.js?v=3.10.1"></script>
   <script>
-    // Pre-load guard: app.js currently redraws the object timeline during range reset.
-    // Keep that viewport non-layout until a parsed map has been selected, so map=null cannot be dereferenced.
+    // Guard app.js while no parsed map is active. This also protects OSZ replacement.
     (() => {
       const viewport = document.getElementById('timelineViewport');
       const diff = document.getElementById('difficultySelect');
-      if (!viewport || !diff) return;
+      const input = document.getElementById('oszInput');
+      if (!viewport || !diff || !input) return;
+
+      const hideTimeline = () => { viewport.style.display = 'none'; };
       const sync = () => { viewport.style.display = diff.disabled ? 'none' : ''; };
-      sync();
+
+      hideTimeline();
+      input.addEventListener('change', hideTimeline, true);
       new MutationObserver(sync).observe(diff, { attributes: true, attributeFilter: ['disabled'] });
     })();
   </script>
-  <script src="./app.js?v=20260810-0645"></script>
+  <script src="./app.js?v=20260810-0648"></script>
 </body>
 </html>
