@@ -1,5 +1,10 @@
 /* mami viewer - continuous workflow / object hit lane UI */
 
+.brand-block h1::after {
+  content: none;
+  display: none;
+}
+
 .workflow-completed {
   margin-top: 9px;
   border-top: 1px solid var(--line);
