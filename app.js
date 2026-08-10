@@ -1,11 +1,11 @@
 (() => {
   'use strict';
 
-  const SPANS = [3000, 6000, 12000, 24000];
+  // Total visible widths: 2.0s / 1.0s / 0.5s = ±1.0 / ±0.5 / ±0.25.
+  const SPANS = [2000, 1000, 500];
   const START_DELAY_SEC = 0.10;
   const TIMELINE_CACHE_FACTOR = 3;
-  const TIMELINE_LABEL_BAND = 30;
-  const DEBUG_REFRESH_MS = 250;
+  const EFFECT_GAIN = 0.85;
 
   const HS_FILES = {
     'normal:hitnormal': './hitsounds/taiko-normal-hitnormal.wav',
@@ -58,7 +58,7 @@
   let map = null;
   let startMark = null;
   let endMark = null;
-  let zoom = 1;
+  let zoom = 1; // ±0.5s initial.
   let ready = false;
   let raf = 0;
 
@@ -83,15 +83,16 @@
   let seekScrub = null;
   let timelineScrub = null;
   let overviewScrub = null;
-
   let timelineRenderCenterMs = NaN;
-  let lastDebugPaint = 0;
 
-  const setStatus = text => { el.status.textContent = text; };
-  const clearError = () => { el.errorCard.hidden = true; el.error.textContent = ''; };
+  const setStatus = text => { if (el.status) el.status.textContent = text; };
+  const clearError = () => {
+    if (el.errorCard) el.errorCard.hidden = true;
+    if (el.error) el.error.textContent = '';
+  };
   const fail = message => {
-    el.error.textContent = message;
-    el.errorCard.hidden = false;
+    if (el.error) el.error.textContent = message;
+    if (el.errorCard) el.errorCard.hidden = false;
     setStatus('エラー');
   };
 
@@ -122,6 +123,13 @@
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
 
+  function fmtTimeline(ms) {
+    const q = Math.max(0, Math.floor((Number.isFinite(ms) ? ms : 0) / 1000));
+    const m = Math.floor(q / 60);
+    const s = q % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
   const fmtLen = ms => Number.isFinite(ms) && ms >= 0 ? `${(ms / 1000).toFixed(3)} s` : '—';
 
   function outputText() {
@@ -137,19 +145,26 @@
   }
 
   function updateOutput() {
-    el.preview.textContent = outputText();
-    el.copyOut.disabled = !(map && el.purpose.value && validRange());
+    if (el.preview) el.preview.textContent = outputText();
+    if (el.copyOut) el.copyOut.disabled = !(map && el.purpose.value && validRange());
   }
 
   function updateRange() {
-    el.start.classList.toggle('marked', !!startMark);
-    el.end.classList.toggle('marked', !!endMark);
-    el.start.textContent = startMark ? 'START ✓' : 'START';
-    el.end.textContent = endMark ? 'END ✓' : 'END';
-    el.length.textContent = validRange() ? fmtLen(endMark.time - startMark.time) : '—';
+    if (el.start) {
+      el.start.classList.toggle('marked', !!startMark);
+      el.start.textContent = startMark ? 'START ✓' : 'START';
+    }
+    if (el.end) {
+      el.end.classList.toggle('marked', !!endMark);
+      el.end.textContent = endMark ? 'END ✓' : 'END';
+    }
+    if (el.length) el.length.textContent = validRange() ? fmtLen(endMark.time - startMark.time) : '—';
     updateOutput();
-    renderTimelineStatic(audiblePosition() * 1000, true);
-    renderOverviewStatic();
+    if (map && musicBuffer) {
+      renderTimelineStatic(audiblePosition() * 1000, true);
+      renderOverviewStatic();
+      drawDynamic(audiblePosition());
+    }
   }
 
   function resetRange() {
@@ -160,11 +175,9 @@
 
   function toggleMark(which) {
     if (!map || !musicBuffer) return;
-    if (which === 'start') {
-      startMark = startMark ? null : { time: Math.round(audiblePosition() * 1000) };
-    } else {
-      endMark = endMark ? null : { time: Math.round(audiblePosition() * 1000) };
-    }
+    const point = { time: Math.round(audiblePosition() * 1000) };
+    if (which === 'start') startMark = startMark ? null : point;
+    else endMark = endMark ? null : point;
     updateRange();
   }
 
@@ -266,7 +279,16 @@
         const uninherited = Number.parseInt(f[6], 10) || 0;
         const effects = Number.parseInt(f[7], 10) || 0;
         if (Number.isFinite(time)) {
-          m.timing.push({ time, beat: Number.isFinite(beat) ? beat : 0, meter, sampleSet, volume: Number.isFinite(volume) ? volume : 100, uninherited, effects, order });
+          m.timing.push({
+            time,
+            beat: Number.isFinite(beat) ? beat : 0,
+            meter,
+            sampleSet,
+            volume: Number.isFinite(volume) ? volume : 100,
+            uninherited,
+            effects,
+            order,
+          });
         }
         return;
       }
@@ -286,7 +308,15 @@
         else if (ka) sampleName = 'hitclap';
         else if (big) sampleName = 'hitfinish';
 
-        m.hits.push({ time, kind: ka ? 'ka' : 'don', big, sampleName, sample: hitSampleData(f[5] || ''), family: 'normal', volume: 100 });
+        m.hits.push({
+          time,
+          kind: ka ? 'ka' : 'don',
+          big,
+          sampleName,
+          sample: hitSampleData(f[5] || ''),
+          family: 'normal',
+          volume: 100,
+        });
       }
     });
 
@@ -313,6 +343,22 @@
     return out;
   }
 
+  function bpmChanges() {
+    if (!map) return [];
+    const rows = map.timing.filter(tp => tp.uninherited === 1 && tp.beat > 0 && Number.isFinite(tp.beat));
+    const out = [];
+    let last = null;
+    for (const tp of rows) {
+      const bpm = 60000 / tp.beat;
+      if (!Number.isFinite(bpm) || bpm <= 0) continue;
+      if (last === null || Math.abs(bpm - last) >= 0.01) {
+        out.push({ time: tp.time, bpm });
+        last = bpm;
+      }
+    }
+    return out;
+  }
+
   const norm = name => String(name || '').replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase();
   function zipFile(name) {
     if (!zip || !name) return null;
@@ -328,11 +374,13 @@
       effectGain = ac.createGain();
       masterGain = ac.createGain();
       musicGain.gain.value = 1;
-      effectGain.gain.value = 1;
+      effectGain.gain.value = EFFECT_GAIN;
       masterGain.gain.value = 1;
       musicGain.connect(masterGain);
       effectGain.connect(masterGain);
       masterGain.connect(ac.destination);
+    } else if (effectGain) {
+      effectGain.gain.value = EFFECT_GAIN;
     }
     if (resume && ac.state === 'suspended') await ac.resume();
     return ac;
@@ -412,15 +460,14 @@
       try { source.disconnect(); } catch {}
     }
     playing = false;
-    el.play.textContent = '▶';
+    if (el.play) el.play.textContent = '▶';
   }
 
   async function startPlayback(offset) {
     if (!musicBuffer || !effectBuffer || !map) return;
     await ensureContext(true);
     const startAt = clampSec(offset);
-    if (startAt >= durationSec() - 0.001) pausedOffset = 0;
-    else pausedOffset = startAt;
+    pausedOffset = startAt >= durationSec() - 0.001 ? 0 : startAt;
     stopSources();
 
     const when = ac.currentTime + START_DELAY_SEC;
@@ -478,7 +525,11 @@
     const name = activeMap.general.AudioFilename;
     if (!name) throw new Error('AudioFilenameがありません。');
     await ensureContext(false);
-    if (musicBuffer && musicName === norm(name)) { stopSources(); pausedOffset = 0; return; }
+    if (musicBuffer && musicName === norm(name)) {
+      stopSources();
+      pausedOffset = 0;
+      return;
+    }
     const entry = zipFile(name);
     if (!entry) throw new Error(`OSZ内で音源を見つけられません: ${name}`);
     stopSources();
@@ -500,7 +551,9 @@
 
   function setControls(enabled) {
     ready = enabled;
-    [el.play, el.back, el.fwd, el.seek, el.copyTime, el.start, el.end].forEach(node => { node.disabled = !enabled; });
+    [el.play, el.back, el.fwd, el.seek, el.copyTime, el.start, el.end].forEach(node => {
+      if (node) node.disabled = !enabled;
+    });
     updateZoom();
     updateOutput();
   }
@@ -526,10 +579,10 @@
       pausedOffset = 0;
       setControls(true);
       setStatus('準備完了');
+      timelineRenderCenterMs = NaN;
       renderTimelineStatic(0, true);
       renderOverviewStatic();
       drawDynamic(0);
-      paintDebug(true);
     } catch (error) {
       fail(error instanceof Error ? error.message : String(error));
     }
@@ -537,8 +590,17 @@
 
   async function loadOsz(file) {
     clearError();
-    if (!file || !/\.osz$/i.test(file.name || '')) { fail('.osz / .OSZ ファイルを選択してください。'); return; }
-    if (!window.JSZip) { fail('JSZipを読み込めません。'); return; }
+    if (!file || !/\.osz$/i.test(file.name || '')) {
+      fail('.osz / .OSZ ファイルを選択してください。');
+      return;
+    }
+    if (!window.JSZip) {
+      fail('JSZipを読み込めません。');
+      return;
+    }
+
+    if (el.fileName) el.fileName.textContent = file.name;
+    setStatus('OSZ解析中');
     el.purpose.value = '';
     el.fade.value = '含まない';
     zoom = 1;
@@ -547,21 +609,26 @@
     effectBuffer = null;
     musicName = '';
     map = null;
-    resetRange();
+    maps = [];
+    startMark = null;
+    endMark = null;
+    updateRange();
     setControls(false);
     el.diff.disabled = true;
-    el.fileName.textContent = file.name;
-    setStatus('OSZ解析中');
+    el.diff.innerHTML = '<option>OSZ解析中…</option>';
 
     try {
-      zip = await JSZip.loadAsync(file);
+      const bytes = await file.arrayBuffer();
+      zip = await JSZip.loadAsync(bytes);
       const entries = Object.values(zip.files).filter(entry => !entry.dir && /\.osu$/i.test(entry.name));
       if (!entries.length) throw new Error('OSZ内に .osu がありません。');
+
       const parsed = [];
       for (const entry of entries) parsed.push(parseOsu(await entry.async('string'), entry.name));
       const taiko = parsed.filter(item => item.mode === 1);
       maps = taiko.length ? taiko : parsed;
       if (!maps.length) throw new Error('表示できる譜面がありません。');
+
       el.diff.innerHTML = '';
       maps.forEach((item, index) => {
         const option = document.createElement('option');
@@ -572,22 +639,26 @@
       el.diff.disabled = false;
       await useMap(0);
     } catch (error) {
+      el.diff.innerHTML = '<option>読み込み失敗</option>';
       fail(error instanceof Error ? error.message : String(error));
     }
   }
 
   function updateZoom() {
-    const half = spanMs() / 2000;
-    el.zoomLabel.textContent = `±${Number.isInteger(half) ? half.toFixed(0) : half.toFixed(1)}s`;
-    el.zoomIn.disabled = !ready || zoom === 0;
-    el.zoomOut.disabled = !ready || zoom === SPANS.length - 1;
+    const labels = ['±1.0s', '±0.5s', '±0.25s'];
+    el.zoomLabel.textContent = labels[zoom] || '±0.5s';
+    el.zoomIn.disabled = !ready || zoom >= SPANS.length - 1;
+    el.zoomOut.disabled = !ready || zoom <= 0;
   }
 
   function sizeCanvas(canvas, cssWidth, cssHeight) {
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const width = Math.max(1, Math.round(cssWidth * dpr));
     const height = Math.max(1, Math.round(cssHeight * dpr));
-    if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
     canvas.style.width = `${cssWidth}px`;
     canvas.style.height = `${cssHeight}px`;
     const ctx = canvas.getContext('2d');
@@ -596,17 +667,28 @@
   }
 
   function lowerHit(timeMs) {
-    let lo = 0, hi = map ? map.hits.length : 0;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (map.hits[mid].time < timeMs) lo = mid + 1; else hi = mid; }
+    let lo = 0;
+    let hi = map ? map.hits.length : 0;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (map.hits[mid].time < timeMs) lo = mid + 1;
+      else hi = mid;
+    }
     return lo;
   }
 
-  function drawBeatGrid(ctx, left, right, xForTime, height, labelCenterX) {
+  function drawObjectTicks(ctx, left, right, xForTime, width, height) {
     if (!map) return;
     const red = map.timing.filter(tp => tp.uninherited === 1 && tp.beat > 0);
-    if (!red.length) return;
-    const labelY = 17;
-    const gridTop = TIMELINE_LABEL_BAND;
+    const baseline = height - 20;
+
+    ctx.strokeStyle = 'rgba(255,255,255,.24)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, baseline + 0.5);
+    ctx.lineTo(width, baseline + 0.5);
+    ctx.stroke();
+
     let safety = 0;
     for (let r = 0; r < red.length; r++) {
       const tp = red[r];
@@ -617,93 +699,132 @@
       let n = Math.ceil((a - tp.time) / tp.beat);
       if (!Number.isFinite(n)) continue;
       for (let time = tp.time + n * tp.beat; time <= b + 0.01; time += tp.beat, n++) {
-        if (++safety > 6000) return;
+        if (++safety > 8000) return;
         const x = xForTime(time);
         const meter = Math.max(1, tp.meter);
         const measure = ((n % meter) + meter) % meter === 0;
-        ctx.strokeStyle = measure ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.065)';
-        ctx.lineWidth = measure ? 1.2 : 1;
-        ctx.beginPath(); ctx.moveTo(x, gridTop); ctx.lineTo(x, height); ctx.stroke();
-        if (measure && Math.abs(x - labelCenterX) > 38) {
-          ctx.fillStyle = 'rgba(255,255,255,.48)';
-          ctx.font = '10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(fmt(time), x, labelY);
-        }
+        const tick = measure ? 24 : 10;
+        ctx.strokeStyle = measure ? 'rgba(255,255,255,.50)' : 'rgba(255,255,255,.26)';
+        ctx.lineWidth = measure ? 1.5 : 1;
+        ctx.beginPath();
+        ctx.moveTo(x, baseline - tick);
+        ctx.lineTo(x, baseline);
+        ctx.stroke();
       }
     }
   }
 
   function renderTimelineStatic(centerMs = audiblePosition() * 1000, force = false) {
-    if (!el.timelineViewport || !el.timelineStatic) return;
+    if (!map || !musicBuffer || !el.timelineViewport || !el.timelineStatic) return;
     const rect = el.timelineViewport.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
     if (!force && Number.isFinite(timelineRenderCenterMs) && Math.abs(centerMs - timelineRenderCenterMs) < spanMs() * 0.65) return;
     timelineRenderCenterMs = centerMs;
 
-    const viewW = rect.width, viewH = rect.height, canvasW = viewW * TIMELINE_CACHE_FACTOR;
+    const viewW = rect.width;
+    const viewH = rect.height;
+    const canvasW = viewW * TIMELINE_CACHE_FACTOR;
     const cachedSpan = spanMs() * TIMELINE_CACHE_FACTOR;
-    const left = centerMs - cachedSpan / 2, right = centerMs + cachedSpan / 2;
+    const left = centerMs - cachedSpan / 2;
+    const right = centerMs + cachedSpan / 2;
     const xForTime = time => (time - left) / cachedSpan * canvasW;
     const ctx = sizeCanvas(el.timelineStatic, canvasW, viewH);
     el.timelineStatic.style.left = `${-viewW}px`;
     el.timelineStatic.style.transform = 'translate3d(0,0,0)';
     ctx.clearRect(0, 0, canvasW, viewH);
-    ctx.fillStyle = css('--surface', '#101015'); ctx.fillRect(0, 0, canvasW, viewH);
+    ctx.fillStyle = css('--surface', '#101015');
+    ctx.fillRect(0, 0, canvasW, viewH);
 
-    ctx.fillStyle = 'rgba(244,220,125,.18)';
+    ctx.fillStyle = 'rgba(244,220,125,.15)';
     for (const range of kiaiIntervals()) {
-      const a = Math.max(left, range.start), b = Math.min(right, range.end);
-      if (b > a) ctx.fillRect(xForTime(a), TIMELINE_LABEL_BAND, xForTime(b) - xForTime(a), viewH - TIMELINE_LABEL_BAND);
+      const a = Math.max(left, range.start);
+      const b = Math.min(right, range.end);
+      if (b > a) ctx.fillRect(xForTime(a), 0, xForTime(b) - xForTime(a), viewH);
     }
-    drawBeatGrid(ctx, left, right, xForTime, viewH, canvasW / 2);
 
-    const noteY = TIMELINE_LABEL_BAND + (viewH - TIMELINE_LABEL_BAND) * 0.56;
-    const don = css('--don', '#ef6862'), ka = css('--ka', '#69bde0');
+    drawObjectTicks(ctx, left, right, xForTime, canvasW, viewH);
+
+    const noteY = Math.max(46, Math.min(viewH - 62, viewH * 0.48));
+    const don = css('--don', '#ef6862');
+    const ka = css('--ka', '#69bde0');
     const first = lowerHit(left);
     for (let i = first; i < map.hits.length; i++) {
       const hit = map.hits[i];
       if (hit.time > right) break;
-      const x = xForTime(hit.time), radius = hit.big ? 18 : 13;
+      const x = xForTime(hit.time);
+      const radius = hit.big ? 30 : 22;
       ctx.fillStyle = hit.kind === 'ka' ? ka : don;
-      ctx.strokeStyle = 'rgba(255,255,255,.72)'; ctx.lineWidth = hit.big ? 3 : 1.5;
-      ctx.beginPath(); ctx.arc(x, noteY, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      if (hit.big) { ctx.strokeStyle = 'rgba(255,255,255,.26)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, noteY, radius + 5, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(255,255,255,.78)';
+      ctx.lineWidth = hit.big ? 3 : 2;
+      ctx.beginPath();
+      ctx.arc(x, noteY, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      if (hit.big) {
+        ctx.strokeStyle = 'rgba(255,255,255,.28)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, noteY, radius + 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
 
     if (validRange()) {
-      const a = Math.max(left, startMark.time), b = Math.min(right, endMark.time);
-      if (b > a) { ctx.fillStyle = 'rgba(104,211,154,.07)'; ctx.fillRect(xForTime(a), TIMELINE_LABEL_BAND, xForTime(b) - xForTime(a), viewH - TIMELINE_LABEL_BAND); }
+      const a = Math.max(left, startMark.time);
+      const b = Math.min(right, endMark.time);
+      if (b > a) {
+        ctx.fillStyle = 'rgba(104,211,154,.06)';
+        ctx.fillRect(xForTime(a), 0, xForTime(b) - xForTime(a), viewH);
+      }
     }
+
     const drawMark = (mark, label, color) => {
       if (!mark || mark.time < left || mark.time > right) return;
       const x = xForTime(mark.time);
-      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
-      ctx.beginPath(); ctx.moveTo(x, TIMELINE_LABEL_BAND); ctx.lineTo(x, viewH); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = color; ctx.font = '800 10px -apple-system,BlinkMacSystemFont,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(label, x + 4, TIMELINE_LABEL_BAND + 4);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(x, 6);
+      ctx.lineTo(x, viewH - 20);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = color;
+      ctx.font = '800 10px -apple-system,BlinkMacSystemFont,sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(label, x + 4, 5);
     };
     drawMark(startMark, 'START', css('--range-start', '#68d39a'));
     drawMark(endMark, 'END', css('--range-end', '#f3b55d'));
   }
 
   function updateTimelineTransform(positionMs) {
+    if (!map || !musicBuffer) return;
     if (!Number.isFinite(timelineRenderCenterMs)) renderTimelineStatic(positionMs, true);
     const rect = el.timelineViewport.getBoundingClientRect();
     if (rect.width <= 0) return;
     const deltaMs = positionMs - timelineRenderCenterMs;
-    if (Math.abs(deltaMs) >= spanMs() * 0.65) { renderTimelineStatic(positionMs, true); return; }
+    if (Math.abs(deltaMs) >= spanMs() * 0.65) {
+      renderTimelineStatic(positionMs, true);
+      return;
+    }
     const shiftPx = -(deltaMs / spanMs()) * rect.width;
     el.timelineStatic.style.transform = `translate3d(${shiftPx}px,0,0)`;
   }
 
   function drawTimelineCursor() {
+    if (!el.timelineViewport || !el.timelineCursor) return;
     const rect = el.timelineViewport.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
     const ctx = sizeCanvas(el.timelineCursor, rect.width, rect.height);
     ctx.clearRect(0, 0, rect.width, rect.height);
-    const x = rect.width / 2;
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(x, TIMELINE_LABEL_BAND); ctx.lineTo(x, rect.height); ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(x - 5, TIMELINE_LABEL_BAND); ctx.lineTo(x + 5, TIMELINE_LABEL_BAND); ctx.lineTo(x, TIMELINE_LABEL_BAND + 7); ctx.closePath(); ctx.fill();
+  }
+
+  function chooseMajorTickSeconds(durationSeconds) {
+    const target = durationSeconds / 7;
+    const choices = [5, 10, 15, 20, 30, 60, 90, 120, 180, 300, 600];
+    return choices.find(v => v >= target) || choices[choices.length - 1];
   }
 
   function renderOverviewStatic() {
@@ -712,28 +833,102 @@
     if (rect.width <= 0 || rect.height <= 0) return;
     const ctx = sizeCanvas(el.overviewStatic, rect.width, rect.height);
     ctx.clearRect(0, 0, rect.width, rect.height);
-    ctx.fillStyle = css('--surface', '#101015'); ctx.fillRect(0, 0, rect.width, rect.height);
+    ctx.fillStyle = css('--surface', '#101015');
+    ctx.fillRect(0, 0, rect.width, rect.height);
     if (!map || !musicBuffer || durationSec() <= 0) return;
+
     const d = durationMs();
     const xForTime = time => Math.max(0, Math.min(rect.width, time / d * rect.width));
-    ctx.fillStyle = 'rgba(244,220,125,.24)';
+
+    ctx.fillStyle = 'rgba(244,220,125,.18)';
     for (const range of kiaiIntervals()) {
       const finish = Number.isFinite(range.end) ? range.end : d;
       ctx.fillRect(xForTime(range.start), 0, Math.max(1, xForTime(finish) - xForTime(range.start)), rect.height);
     }
-    if (validRange()) { ctx.fillStyle = 'rgba(104,211,154,.08)'; ctx.fillRect(xForTime(startMark.time), 0, Math.max(1, xForTime(endMark.time) - xForTime(startMark.time)), rect.height); }
-    const mark = (point, color) => { if (!point) return; const x = xForTime(point.time); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, rect.height); ctx.stroke(); };
-    mark(startMark, css('--range-start', '#68d39a')); mark(endMark, css('--range-end', '#f3b55d'));
+
+    if (validRange()) {
+      ctx.fillStyle = 'rgba(104,211,154,.07)';
+      ctx.fillRect(xForTime(startMark.time), 0, Math.max(1, xForTime(endMark.time) - xForTime(startMark.time)), rect.height);
+    }
+
+    const baseline = rect.height - 22;
+    ctx.strokeStyle = 'rgba(255,255,255,.32)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, baseline + 0.5);
+    ctx.lineTo(rect.width, baseline + 0.5);
+    ctx.stroke();
+
+    const majorSec = chooseMajorTickSeconds(durationSec());
+    const minorSec = majorSec / 4;
+    for (let sec = 0; sec <= durationSec() + 0.0001; sec += minorSec) {
+      const major = Math.abs(sec / majorSec - Math.round(sec / majorSec)) < 1e-6;
+      const x = xForTime(sec * 1000);
+      const tick = major ? 16 : 7;
+      ctx.strokeStyle = major ? 'rgba(255,255,255,.58)' : 'rgba(255,255,255,.25)';
+      ctx.lineWidth = major ? 1.4 : 1;
+      ctx.beginPath();
+      ctx.moveTo(x, baseline - tick);
+      ctx.lineTo(x, baseline);
+      ctx.stroke();
+      if (major) {
+        ctx.fillStyle = 'rgba(255,255,255,.58)';
+        ctx.font = '9px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';
+        ctx.textAlign = x < 24 ? 'left' : (x > rect.width - 24 ? 'right' : 'center');
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(fmtTimeline(sec * 1000), x, baseline - 18);
+      }
+    }
+
+    let lastLabelX = -Infinity;
+    for (const change of bpmChanges()) {
+      if (change.time < 0 || change.time > d) continue;
+      const x = xForTime(change.time);
+      ctx.strokeStyle = 'rgba(255,255,255,.42)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, 4);
+      ctx.lineTo(x, 25);
+      ctx.stroke();
+      if (x - lastLabelX >= 62) {
+        const label = `${Math.round(change.bpm * 100) / 100}bpm`;
+        ctx.fillStyle = 'rgba(255,255,255,.78)';
+        ctx.font = '800 9px -apple-system,BlinkMacSystemFont,sans-serif';
+        ctx.textAlign = x < rect.width - 60 ? 'left' : 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText(label, x < rect.width - 60 ? x + 3 : x - 3, 5);
+        lastLabelX = x;
+      }
+    }
+
+    const mark = (point, color) => {
+      if (!point) return;
+      const x = xForTime(point.time);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, rect.height);
+      ctx.stroke();
+    };
+    mark(startMark, css('--range-start', '#68d39a'));
+    mark(endMark, css('--range-end', '#f3b55d'));
   }
 
   function drawOverviewCursor(positionSec) {
+    if (!el.overviewViewport || !el.overviewCursor) return;
     const rect = el.overviewViewport.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
     const ctx = sizeCanvas(el.overviewCursor, rect.width, rect.height);
     ctx.clearRect(0, 0, rect.width, rect.height);
     if (!musicBuffer || durationSec() <= 0) return;
     const x = clampSec(positionSec) / durationSec() * rect.width;
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, rect.height); ctx.stroke();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, rect.height);
+    ctx.stroke();
   }
 
   function drawDynamic(positionSec = audiblePosition()) {
@@ -745,61 +940,43 @@
 
   function syncVisualToPosition(forceStatic = false) {
     const p = audiblePosition();
-    el.time.textContent = fmt(p * 1000);
-    if (!seekScrub) el.seek.value = String(p);
+    if (el.time) el.time.textContent = fmt(p * 1000);
+    if (!seekScrub && el.seek) el.seek.value = String(p);
     if (forceStatic) renderTimelineStatic(p * 1000, true);
     drawDynamic(p);
   }
 
-  function getAudioDebug() {
-    if (!ac) return { sampleRate: null, baseLatencyMs: null, outputLatencyMs: null, enginePosMs: 0, audiblePosMs: 0, clockDeltaMs: 0, outputTimestamp: false };
-    const engine = enginePosition(), audible = audiblePosition();
-    return {
-      sampleRate: ac.sampleRate,
-      baseLatencyMs: Number.isFinite(ac.baseLatency) ? ac.baseLatency * 1000 : null,
-      outputLatencyMs: Number.isFinite(ac.outputLatency) ? ac.outputLatency * 1000 : null,
-      enginePosMs: engine * 1000,
-      audiblePosMs: audible * 1000,
-      clockDeltaMs: (engine - audible) * 1000,
-      outputTimestamp: typeof ac.getOutputTimestamp === 'function',
-    };
-  }
-
-  function paintDebug(force = false, now = performance.now()) {
-    if (!el.debug) return;
-    if (!force && now - lastDebugPaint < DEBUG_REFRESH_MS) return;
-    lastDebugPaint = now;
-    const d = getAudioDebug();
-    const n = value => Number.isFinite(value) ? value.toFixed(3) : 'n/a';
-    el.debug.textContent = [`sampleRate: ${d.sampleRate ?? 'n/a'} Hz`,`baseLatency: ${n(d.baseLatencyMs)} ms`,`outputLatency: ${n(d.outputLatencyMs)} ms`,`getOutputTimestamp: ${d.outputTimestamp ? 'yes' : 'no'}`,`engine position: ${n(d.enginePosMs)} ms`,`audible position: ${n(d.audiblePosMs)} ms`,`engine - audible: ${n(d.clockDeltaMs)} ms`].join('\n');
-  }
-
-  function frame(now) {
+  function frame() {
     const p = audiblePosition();
-    el.time.textContent = fmt(p * 1000);
-    if (!seekScrub && !timelineScrub && !overviewScrub) el.seek.value = String(p);
+    if (el.time) el.time.textContent = fmt(p * 1000);
+    if (!seekScrub && !timelineScrub && !overviewScrub && el.seek) el.seek.value = String(p);
     drawDynamic(p);
-    paintDebug(false, now);
     raf = requestAnimationFrame(frame);
   }
 
   function beginScrub(kind) {
     if (!ready) return null;
     const state = { kind, wasPlaying: playing, basePosition: audiblePosition() };
-    if (playing) { pausedOffset = enginePosition(); stopSources(); }
-    else pausedOffset = audiblePosition();
+    if (playing) {
+      pausedOffset = enginePosition();
+      stopSources();
+    } else {
+      pausedOffset = audiblePosition();
+    }
     return state;
   }
 
   function scrubTo(targetSec) {
     pausedOffset = clampSec(targetSec);
-    el.time.textContent = fmt(pausedOffset * 1000);
-    el.seek.value = String(pausedOffset);
+    if (el.time) el.time.textContent = fmt(pausedOffset * 1000);
+    if (el.seek) el.seek.value = String(pausedOffset);
     renderTimelineStatic(pausedOffset * 1000, false);
     drawDynamic(pausedOffset);
   }
 
-  async function endScrub(state) { if (state && state.wasPlaying) await startPlayback(pausedOffset); }
+  async function endScrub(state) {
+    if (state && state.wasPlaying) await startPlayback(pausedOffset);
+  }
 
   function timelineTargetFromEvent(event) {
     const rect = el.timelineViewport.getBoundingClientRect();
@@ -813,9 +990,19 @@
     return clampSec(durationSec() * q);
   }
 
-  el.oszInput.addEventListener('change', async event => { const file = event.target.files && event.target.files[0]; if (file) await loadOsz(file); event.target.value = ''; });
+  el.oszInput.addEventListener('change', async event => {
+    const file = event.target.files && event.target.files[0];
+    if (file) await loadOsz(file);
+  });
   el.diff.addEventListener('change', () => useMap(Number(el.diff.value)));
-  el.play.addEventListener('click', async () => { try { if (playing) pausePlayback(); else await startPlayback(pausedOffset); } catch (error) { fail(error instanceof Error ? error.message : '再生できませんでした。'); } });
+  el.play.addEventListener('click', async () => {
+    try {
+      if (playing) pausePlayback();
+      else await startPlayback(pausedOffset);
+    } catch (error) {
+      fail(error instanceof Error ? error.message : '再生できませんでした。');
+    }
+  });
   el.back.addEventListener('click', () => seekTo(audiblePosition() - 5));
   el.fwd.addEventListener('click', () => seekTo(audiblePosition() + 5));
   el.copyTime.addEventListener('click', () => copy(fmt(audiblePosition() * 1000), el.copyTime));
@@ -823,32 +1010,110 @@
   el.end.addEventListener('click', () => toggleMark('end'));
   el.purpose.addEventListener('change', updateOutput);
   el.fade.addEventListener('change', updateOutput);
-  el.copyOut.addEventListener('click', () => { if (!el.copyOut.disabled) copy(outputText(), el.copyOut); });
-  el.zoomIn.addEventListener('click', () => { if (zoom > 0) { zoom--; updateZoom(); renderTimelineStatic(audiblePosition() * 1000, true); drawDynamic(audiblePosition()); } });
-  el.zoomOut.addEventListener('click', () => { if (zoom < SPANS.length - 1) { zoom++; updateZoom(); renderTimelineStatic(audiblePosition() * 1000, true); drawDynamic(audiblePosition()); } });
+  el.copyOut.addEventListener('click', () => {
+    if (!el.copyOut.disabled) copy(outputText(), el.copyOut);
+  });
+
+  el.zoomIn.addEventListener('click', () => {
+    if (zoom < SPANS.length - 1) {
+      zoom++;
+      updateZoom();
+      timelineRenderCenterMs = NaN;
+      renderTimelineStatic(audiblePosition() * 1000, true);
+      drawDynamic(audiblePosition());
+    }
+  });
+  el.zoomOut.addEventListener('click', () => {
+    if (zoom > 0) {
+      zoom--;
+      updateZoom();
+      timelineRenderCenterMs = NaN;
+      renderTimelineStatic(audiblePosition() * 1000, true);
+      drawDynamic(audiblePosition());
+    }
+  });
 
   el.seek.addEventListener('pointerdown', () => { seekScrub = beginScrub('seek'); });
-  el.seek.addEventListener('input', () => { if (!seekScrub) seekScrub = beginScrub('seek'); const value = Number(el.seek.value); if (Number.isFinite(value)) scrubTo(value); });
-  const finishSeek = async () => { const state = seekScrub; seekScrub = null; await endScrub(state); };
+  el.seek.addEventListener('input', () => {
+    if (!seekScrub) seekScrub = beginScrub('seek');
+    const value = Number(el.seek.value);
+    if (Number.isFinite(value)) scrubTo(value);
+  });
+  const finishSeek = async () => {
+    const state = seekScrub;
+    seekScrub = null;
+    await endScrub(state);
+  };
   el.seek.addEventListener('pointerup', finishSeek);
   el.seek.addEventListener('change', finishSeek);
 
-  el.timelineViewport.addEventListener('pointerdown', event => { if (!ready) return; event.preventDefault(); el.timelineViewport.setPointerCapture?.(event.pointerId); timelineScrub = beginScrub('timeline'); scrubTo(timelineTargetFromEvent(event)); });
-  el.timelineViewport.addEventListener('pointermove', event => { if (!timelineScrub) return; event.preventDefault(); scrubTo(timelineTargetFromEvent(event)); });
-  el.timelineViewport.addEventListener('pointerup', async event => { if (!timelineScrub) return; el.timelineViewport.releasePointerCapture?.(event.pointerId); const state = timelineScrub; timelineScrub = null; await endScrub(state); });
-  el.timelineViewport.addEventListener('pointercancel', async () => { const state = timelineScrub; timelineScrub = null; await endScrub(state); });
+  el.timelineViewport.addEventListener('pointerdown', event => {
+    if (!ready) return;
+    event.preventDefault();
+    el.timelineViewport.setPointerCapture?.(event.pointerId);
+    timelineScrub = beginScrub('timeline');
+    scrubTo(timelineTargetFromEvent(event));
+  });
+  el.timelineViewport.addEventListener('pointermove', event => {
+    if (!timelineScrub) return;
+    event.preventDefault();
+    scrubTo(timelineTargetFromEvent(event));
+  });
+  el.timelineViewport.addEventListener('pointerup', async event => {
+    if (!timelineScrub) return;
+    el.timelineViewport.releasePointerCapture?.(event.pointerId);
+    const state = timelineScrub;
+    timelineScrub = null;
+    await endScrub(state);
+  });
+  el.timelineViewport.addEventListener('pointercancel', async () => {
+    const state = timelineScrub;
+    timelineScrub = null;
+    await endScrub(state);
+  });
 
-  el.overviewViewport.addEventListener('pointerdown', event => { if (!ready) return; event.preventDefault(); el.overviewViewport.setPointerCapture?.(event.pointerId); overviewScrub = beginScrub('overview'); scrubTo(overviewTargetFromEvent(event)); });
-  el.overviewViewport.addEventListener('pointermove', event => { if (!overviewScrub) return; event.preventDefault(); scrubTo(overviewTargetFromEvent(event)); });
-  el.overviewViewport.addEventListener('pointerup', async event => { if (!overviewScrub) return; el.overviewViewport.releasePointerCapture?.(event.pointerId); const state = overviewScrub; overviewScrub = null; await endScrub(state); });
-  el.overviewViewport.addEventListener('pointercancel', async () => { const state = overviewScrub; overviewScrub = null; await endScrub(state); });
+  el.overviewViewport.addEventListener('pointerdown', event => {
+    if (!ready) return;
+    if (event.target === el.copyTime || el.copyTime?.contains(event.target)) return;
+    event.preventDefault();
+    el.overviewViewport.setPointerCapture?.(event.pointerId);
+    overviewScrub = beginScrub('overview');
+    scrubTo(overviewTargetFromEvent(event));
+  });
+  el.overviewViewport.addEventListener('pointermove', event => {
+    if (!overviewScrub) return;
+    event.preventDefault();
+    scrubTo(overviewTargetFromEvent(event));
+  });
+  el.overviewViewport.addEventListener('pointerup', async event => {
+    if (!overviewScrub) return;
+    el.overviewViewport.releasePointerCapture?.(event.pointerId);
+    const state = overviewScrub;
+    overviewScrub = null;
+    await endScrub(state);
+  });
+  el.overviewViewport.addEventListener('pointercancel', async () => {
+    const state = overviewScrub;
+    overviewScrub = null;
+    await endScrub(state);
+  });
 
-  window.addEventListener('resize', () => { renderTimelineStatic(audiblePosition() * 1000, true); renderOverviewStatic(); drawDynamic(audiblePosition()); });
-  window.addEventListener('orientationchange', () => { renderTimelineStatic(audiblePosition() * 1000, true); renderOverviewStatic(); drawDynamic(audiblePosition()); });
-  window.addEventListener('beforeunload', () => { cancelAnimationFrame(raf); stopSources(); if (ac) ac.close().catch(() => {}); });
+  const redraw = () => {
+    if (!map || !musicBuffer) return;
+    timelineRenderCenterMs = NaN;
+    renderTimelineStatic(audiblePosition() * 1000, true);
+    renderOverviewStatic();
+    drawDynamic(audiblePosition());
+  };
+  window.addEventListener('resize', redraw);
+  window.addEventListener('orientationchange', redraw);
+  window.addEventListener('beforeunload', () => {
+    cancelAnimationFrame(raf);
+    stopSources();
+    if (ac) ac.close().catch(() => {});
+  });
 
   updateRange();
   updateZoom();
-  paintDebug(true);
   raf = requestAnimationFrame(frame);
 })();
