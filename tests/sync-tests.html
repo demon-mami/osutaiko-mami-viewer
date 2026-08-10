@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>mami viewer sync tests</title>
+  <style>
+    body{font-family:system-ui,sans-serif;background:#111;color:#eee;padding:16px}pre{white-space:pre-wrap;background:#1b1b1b;padding:12px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <h1>mami viewer sync tests</h1>
+  <pre id="result">running…</pre>
+  <script src="../app-v3.js"></script>
+  <script>
+    (async()=>{
+      const out=[];
+      const ok=(name,cond,detail='')=>out.push(`${cond?'PASS':'FAIL'}  ${name}${detail?`  ${detail}`:''}`);
+      const api=window.__MAMI_VIEWER_TEST__;
+      if(!api){document.getElementById('result').textContent='FAIL  test API unavailable';return;}
+
+      const sr=48000;
+      ok('1000ms -> exact frame',api.hitTimeToFrame(1000,sr)===48000,`got=${api.hitTimeToFrame(1000,sr)}`);
+      ok('1125ms -> exact frame',api.hitTimeToFrame(1125,sr)===54000,`got=${api.hitTimeToFrame(1125,sr)}`);
+      ok('2500ms -> exact frame',api.hitTimeToFrame(2500,sr)===120000,`got=${api.hitTimeToFrame(2500,sr)}`);
+
+      const C=window.AudioContext||window.webkitAudioContext;
+      if(C){
+        const ac=new C({sampleRate:sr});
+        const music=ac.createBuffer(1,sr*4,sr);
+        const impulse=ac.createBuffer(1,1,sr);
+        impulse.getChannelData(0)[0]=1;
+        const hs=new Map([['normal:hitnormal',impulse]]);
+        const map={hits:[1000,1125,2500].map(time=>({time,family:'normal',sampleName:'hitnormal',volume:100}))};
+        const effect=await api.buildEffectBuffer(map,music,hs,ac);
+        const data=effect.getChannelData(0);
+        for(const t of [1000,1125,2500]){
+          const frame=api.hitTimeToFrame(t,sr);
+          ok(`impulse placed at ${t}ms`,data[frame]===1,`frame=${frame} value=${data[frame]}`);
+          ok(`frame before ${t}ms remains zero`,frame===0||data[frame-1]===0,frame===0?'':`value=${data[frame-1]}`);
+        }
+        try{await ac.close();}catch{}
+      }else{
+        out.push('SKIP  AudioContext unavailable: impulse placement test');
+      }
+
+      const starts=[];
+      const fakeContext={
+        createBufferSource(){
+          return {
+            buffer:null,
+            connect(){},
+            start(when,offset){starts.push({when,offset});}
+          };
+        }
+      };
+      api.startPairedBuffers({
+        audioContext:fakeContext,
+        music:{},effect:{},musicDestination:{},effectDestination:{},
+        when:12.5,offset:10.0
+      });
+      ok('Music and Effect both start',starts.length===2,`count=${starts.length}`);
+      ok('same when',starts.length===2&&starts[0].when===12.5&&starts[1].when===12.5,JSON.stringify(starts));
+      ok('same offset=10.000',starts.length===2&&starts[0].offset===10&&starts[1].offset===10,JSON.stringify(starts));
+
+      document.getElementById('result').textContent=out.join('\n');
+    })().catch(err=>{document.getElementById('result').textContent='FAIL  '+(err&&err.stack||err);});
+  </script>
+</body>
+</html>
