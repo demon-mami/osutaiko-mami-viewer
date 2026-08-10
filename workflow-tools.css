@@ -1,5 +1,82 @@
 /* mami viewer - continuous workflow / object hit lane UI */
 
+.workflow-completed {
+  margin-top: 9px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.workflow-completed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.workflow-completed-head strong {
+  color: var(--text);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.workflow-completed-list {
+  max-height: 112px;
+  overflow-y: auto;
+  border: 1px solid #2b2d34;
+  border-radius: 8px;
+  background: #111216;
+}
+
+.workflow-completed-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 7px 8px;
+  border-bottom: 1px solid #25272d;
+}
+
+.workflow-completed-item:last-child {
+  border-bottom: 0;
+}
+
+.workflow-completed-check {
+  flex: 0 0 auto;
+  color: var(--range-start);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.workflow-completed-text {
+  min-width: 0;
+  display: block;
+}
+
+.workflow-completed-text strong,
+.workflow-completed-text small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-completed-text strong {
+  color: var(--text);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.workflow-completed-text small {
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.25;
+}
+
 .workflow-queue-bar {
   display: flex;
   align-items: center;
