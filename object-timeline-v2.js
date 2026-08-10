@@ -30,6 +30,7 @@
   const DON = 'rgb(235,69,44)';
   const KA = 'rgb(68,141,171)';
   const LANE = '#121214';
+  const LANE_HEIGHT = 80;
   let maps = [];
   let generation = 0;
 
@@ -127,21 +128,6 @@
     return ctx;
   }
 
-  function kiaiIntervals(map, durationMs) {
-    const out = [];
-    let on = false;
-    let start = null;
-    for (const tp of map.timing) {
-      const next = (tp.effects & 1) !== 0;
-      if (next === on) continue;
-      if (on && start !== null && tp.time > start) out.push({ start, end: tp.time });
-      on = next;
-      start = next ? tp.time : null;
-    }
-    if (on && start !== null) out.push({ start, end: durationMs });
-    return out;
-  }
-
   function drawBeatLines(ctx, map, leftTime, rightTime, xForTime, laneTop, laneBottom) {
     let safety = 0;
     const red = map.redTiming;
@@ -186,25 +172,18 @@
     const leftTime = nowMs - hitX / pxPerMs;
     const rightTime = nowMs + (rect.width - hitX) / pxPerMs;
 
-    const laneTop = Math.max(22, rect.height * 0.20);
-    const laneBottom = Math.min(rect.height - 22, rect.height * 0.79);
-    const laneHeight = Math.max(54, laneBottom - laneTop);
+    // The lane keeps its previous ~80px height. Only top/bottom breathing room grows.
+    const laneHeight = Math.min(LANE_HEIGHT, Math.max(54, rect.height - 24));
+    const laneTop = Math.round((rect.height - laneHeight) / 2);
+    const laneBottom = laneTop + laneHeight;
     const noteY = laneTop + laneHeight * 0.50;
     const normalRadius = 19;
     const bigRadius = 22.5;
 
-    // Hide the legacy bottom ticks, then restore Kiai only in the lower band.
+    // Fully mask the legacy OBJECT canvas, including every Kiai yellow region.
     const surface = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#0f1014';
     ctx.fillStyle = surface;
-    ctx.fillRect(0, laneBottom + 1, rect.width, rect.height - laneBottom - 1);
-    for (const range of kiaiIntervals(map, durationMs)) {
-      const x1 = Math.max(0, xForTime(range.start));
-      const x2 = Math.min(rect.width, xForTime(range.end));
-      if (x2 > x1) {
-        ctx.fillStyle = 'rgba(244,220,125,.15)';
-        ctx.fillRect(x1, laneBottom + 1, x2 - x1, rect.height - laneBottom - 1);
-      }
-    }
+    ctx.fillRect(0, 0, rect.width, rect.height);
 
     // Back: lane.
     ctx.fillStyle = LANE;
@@ -214,10 +193,10 @@
     ctx.strokeStyle = 'rgba(255,255,255,.48)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(0, Math.round(laneTop) + 0.5);
-    ctx.lineTo(rect.width, Math.round(laneTop) + 0.5);
-    ctx.moveTo(0, Math.round(laneBottom) + 0.5);
-    ctx.lineTo(rect.width, Math.round(laneBottom) + 0.5);
+    ctx.moveTo(0, laneTop + 0.5);
+    ctx.lineTo(rect.width, laneTop + 0.5);
+    ctx.moveTo(0, laneBottom + 0.5);
+    ctx.lineTo(rect.width, laneBottom + 0.5);
     ctx.stroke();
 
     // Behind notes: beat / measure lines, 1px wide and full lane height.
