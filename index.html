@@ -5,118 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#121217">
   <title>osu!taiko mami viewer</title>
-  <link rel="stylesheet" href="./style.css?v=20260810-0855">
+  <link rel="stylesheet" href="./style.css?v=20260810-2052">
 </head>
 <body>
   <main class="app-shell">
     <header class="appbar">
-      <div class="brand-block">
-        <span class="brand-kicker">TAIKO SECTION VIEWER</span>
-        <h1>mami viewer</h1>
-      </div>
+      <div class="brand-block"><span class="brand-kicker">TAIKO SECTION VIEWER</span><h1>mami viewer</h1></div>
       <span id="statusBadge" class="status-badge">OSZ未読込</span>
     </header>
 
     <section class="source-panel panel">
       <div class="source-row native-file-row">
-        <div class="native-file-wrap">
-          <span class="label">OSZ FILE</span>
-          <input id="oszInput" class="native-file-input" type="file">
-        </div>
+        <div class="native-file-wrap"><span class="label">OSZ FILE</span><input id="oszInput" class="native-file-input" type="file"></div>
         <p id="fileName" class="file-name">.osz / .OSZ</p>
       </div>
-
-      <label class="difficulty-field">
-        <span class="label">DIFFICULTY</span>
-        <select id="difficultySelect" disabled>
-          <option>OSZを読み込んでください</option>
-        </select>
-      </label>
-
-      <div class="song-line">
-        <strong id="songTitle">—</strong>
-        <span id="songMeta">—</span>
-      </div>
+      <label class="difficulty-field"><span class="label">DIFFICULTY</span><select id="difficultySelect" disabled><option>OSZを読み込んでください</option></select></label>
+      <div class="song-line"><strong id="songTitle">—</strong><span id="songMeta">—</span></div>
     </section>
 
     <section class="editor-panel panel" aria-label="再生・ヒットポイント確認">
+      <div class="timeline-toolbar">
+        <div class="timeline-title"><span class="label">OBJECT TIMELINE</span><span id="zoomLabel" class="zoom-label">±0.75s</span></div>
+        <div class="zoom-controls" aria-label="タイムライン拡大縮小"><button id="zoomOutButton" type="button" disabled aria-label="タイムラインを縮小">−</button><button id="zoomInButton" type="button" disabled aria-label="タイムラインを拡大">＋</button></div>
+      </div>
+      <div id="timelineViewport" class="timeline-viewport" aria-label="現在位置周辺のTaikoヒットポイント">
+        <canvas id="timelineStaticCanvas" class="timeline-static"></canvas><canvas id="timelineCursorCanvas" class="timeline-cursor"></canvas>
+      </div>
+
       <div class="range-bar">
         <span class="label">RANGE</span>
-        <div class="range-inline" aria-label="使用区間">
-          <button id="startMarkButton" class="mark-button start" type="button" disabled>START</button>
-          <button id="endMarkButton" class="mark-button end" type="button" disabled>END</button>
-          <div class="range-length-box">
-            <span>LENGTH</span>
-            <strong id="rangeLength">—</strong>
-          </div>
-        </div>
+        <div class="range-inline" aria-label="使用区間"><button id="startMarkButton" class="mark-button start" type="button" disabled>START</button><button id="endMarkButton" class="mark-button end" type="button" disabled>END</button><div class="range-length-box"><span>LENGTH</span><strong id="rangeLength">—</strong></div></div>
       </div>
 
-      <div class="transport-row" aria-label="再生操作">
-        <button id="backButton" class="transport-button" type="button" disabled aria-label="5秒戻る">−5s</button>
-        <button id="playButton" class="play-button" type="button" disabled aria-label="再生">▶</button>
-        <button id="forwardButton" class="transport-button" type="button" disabled aria-label="5秒進む">+5s</button>
-      </div>
-
+      <div class="transport-row" aria-label="再生操作"><button id="backButton" class="transport-button" type="button" disabled>−5s</button><button id="playButton" class="play-button" type="button" disabled>▶</button><button id="forwardButton" class="transport-button" type="button" disabled>+5s</button></div>
       <input id="seekBar" class="seek-bar" type="range" min="0" max="1" step="0.001" value="0" disabled aria-label="曲全体の再生位置">
 
-      <div class="timeline-toolbar">
-        <div class="timeline-title">
-          <span class="label">OBJECT TIMELINE</span>
-          <span id="zoomLabel" class="zoom-label">±0.5s</span>
-        </div>
-        <div class="zoom-controls" aria-label="タイムライン拡大縮小">
-          <button id="zoomOutButton" type="button" disabled aria-label="タイムラインを縮小">−</button>
-          <button id="zoomInButton" type="button" disabled aria-label="タイムラインを拡大">＋</button>
-        </div>
-      </div>
-
-      <div id="timelineViewport" class="timeline-viewport" aria-label="現在位置周辺のTaikoヒットポイント">
-        <canvas id="timelineStaticCanvas" class="timeline-static"></canvas>
-        <canvas id="timelineCursorCanvas" class="timeline-cursor"></canvas>
-      </div>
-
-      <div class="overview-head">
-        <span class="label">SONG TIMELINE</span>
-      </div>
+      <div class="overview-head"><span class="label">SONG TIMELINE</span></div>
       <div id="overviewViewport" class="overview-viewport" aria-label="曲全体のKiai・BPM・現在位置">
-        <canvas id="overviewStaticCanvas" class="overview-static"></canvas>
-        <canvas id="overviewCursorCanvas" class="overview-cursor"></canvas>
-        <button id="copyTimeButton" class="song-time-copy" type="button" disabled aria-label="現在時刻をコピー">
-          <span id="timeDisplay">00:00:000</span>
-        </button>
+        <canvas id="overviewStaticCanvas" class="overview-static"></canvas><canvas id="overviewCursorCanvas" class="overview-cursor"></canvas>
+        <button id="copyTimeButton" class="song-time-copy" type="button" disabled aria-label="現在時刻をコピー"><span id="timeDisplay">00:00:000</span></button>
       </div>
     </section>
 
     <section class="output-panel panel">
-      <div class="output-head">
-        <div>
-          <span class="label">EXPORT</span>
-          <strong>区間情報</strong>
-        </div>
-        <button id="copyOutputButton" class="copy-button" type="button" disabled>COPY</button>
-      </div>
-
+      <div class="output-head"><div><span class="label">EXPORT</span><strong>区間情報</strong></div><button id="copyOutputButton" class="copy-button" type="button" disabled>COPY</button></div>
       <div class="output-controls">
-        <label>
-          <span class="label">用途</span>
-          <select id="purposeSelect">
-            <option value="">選択してください</option>
-            <option value="Stream">Stream</option>
-            <option value="Normal">Normal</option>
-            <option value="1/6">1/6</option>
-            <option value="DoubleBPM">DoubleBPM</option>
-          </select>
-        </label>
-        <label>
-          <span class="label">Fade-in/out</span>
-          <select id="fadeSelect">
-            <option value="含まない" selected>含まない</option>
-            <option value="含む">含む</option>
-          </select>
-        </label>
+        <label><span class="label">用途</span><select id="purposeSelect"><option value="">選択してください</option><option value="Stream">Stream</option><option value="Normal">Normal</option><option value="1/6">1/6</option><option value="DoubleBPM">DoubleBPM</option></select></label>
+        <label><span class="label">Fade-in/out</span><select id="fadeSelect"><option value="含まない" selected>含まない</option><option value="含む">含む</option></select></label>
       </div>
-
       <pre id="outputPreview" class="output-preview">**曲名：—**
 用途：—
 難易度：**—**
@@ -124,14 +60,9 @@
     </section>
 
     <pre id="audioDebug" hidden></pre>
-
-    <section class="error-panel panel" id="errorCard" hidden>
-      <strong>読み込みエラー</strong>
-      <p id="errorMessage"></p>
-    </section>
+    <section class="error-panel panel" id="errorCard" hidden><strong>読み込みエラー</strong><p id="errorMessage"></p></section>
   </main>
-
   <script src="./vendor/jszip.min.js?v=3.10.1"></script>
-  <script src="./app.js?v=20260810-0855"></script>
+  <script src="./app-v2.js?v=20260810-2052"></script>
 </body>
 </html>
