@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#121217">
   <title>osu!taiko mami viewer</title>
-  <link rel="stylesheet" href="./style.css?v=20260810-2129">
+  <link rel="stylesheet" href="./style.css?v=20260810-2214">
 </head>
 <body>
   <main class="app-shell">
@@ -21,6 +21,7 @@
       </div>
       <label class="difficulty-field"><span class="label">DIFFICULTY</span><select id="difficultySelect" disabled><option>OSZを読み込んでください</option></select></label>
       <div class="song-line"><strong id="songTitle">—</strong><span id="songMeta">—</span></div>
+      <p id="samplePolicy" class="sample-policy">Hitsound: Normal / Soft対応、SampleSet=DrumはNormalへフォールバック</p>
     </section>
 
     <section class="editor-panel panel" aria-label="再生・ヒットポイント確認">
@@ -63,7 +64,6 @@
     <section class="error-panel panel" id="errorCard" hidden><strong>読み込みエラー</strong><p id="errorMessage"></p></section>
   </main>
   <script src="./vendor/jszip.min.js?v=3.10.1"></script>
-  <script src="./motion-fix.js?v=20260810-2129"></script>
-  <script src="./app-v2.js?v=20260810-2129"></script>
+  <script src="./app-v3.js?v=20260810-2214"></script>
 </body>
 </html>
