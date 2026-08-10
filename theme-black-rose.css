@@ -1,10 +1,14 @@
 /*
  * mami viewer
- * Black Rose theme v1.0
- * Visual-only / mobile-stable override
+ * Black Rose theme v1.1
+ * CSS-only / no-image / mobile-stable
  *
- * Do not add layout, sizing, animation, transform,
- * canvas geometry, or interaction changes here.
+ * Goal:
+ * - tool-grade visual hierarchy
+ * - no layout changes
+ * - no interaction changes
+ * - no images
+ * - no animation
  */
 
 :root {
@@ -16,12 +20,16 @@
   --surface: #0f1014;
 
   --line: #2c2e36;
+  --line-strong: #3a3c46;
 
   --text: #f0eef1;
   --muted: #96909a;
 
   --accent: #c97f9e;
   --accent-soft: rgba(201, 127, 158, 0.14);
+  --accent-border: rgba(201, 127, 158, 0.58);
+  --accent-text: #e9aec4;
+  --accent-contrast: #1a1116;
 
   --don: #eeb9b2;
   --ka: #b0ccd7;
@@ -32,22 +40,96 @@
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 
-/* Existing hard-coded visual colors only */
 
-.native-file-input::file-selector-button {
-  border-color: rgba(201, 127, 158, 0.55);
-  background: var(--accent-soft);
-  color: #e9aec4;
+/* -------------------------------------------------
+   Base surfaces
+   既存寸法・配置は変更しない
+   ------------------------------------------------- */
+
+html,
+body {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+.panel {
+  background-color: var(--panel);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+
+.status-badge {
+  background-color: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+
+/* -------------------------------------------------
+   Neutral controls
+   通常操作は無彩色
+   ------------------------------------------------- */
+
+select,
+.zoom-controls button,
+.mark-button,
+.transport-button {
+  background-color: var(--panel-2);
+  border-color: var(--line);
+  color: var(--text);
 }
 
 select:focus {
-  border-color: rgba(201, 127, 158, 0.68);
+  border-color: var(--line-strong);
 }
+
+
+/* -------------------------------------------------
+   Primary actions
+   Roseを限定使用
+   ------------------------------------------------- */
+
+.native-file-input::file-selector-button {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.play-button,
+.copy-button {
+  border-color: var(--accent-border);
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+
+/* -------------------------------------------------
+   Work surfaces
+   Timeline / Outputは作業面として一段強い境界
+   ------------------------------------------------- */
 
 .timeline-viewport,
 .overview-viewport {
-  border-color: var(--line);
+  background-color: var(--surface);
+  border-color: var(--line-strong);
 }
+
+.output-preview {
+  background-color: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.song-time-copy {
+  background: rgba(15, 16, 20, 0.88);
+  color: var(--text);
+}
+
+
+/* -------------------------------------------------
+   Range
+   Theme colorではなく意味色
+   ------------------------------------------------- */
 
 .range-bar {
   background: linear-gradient(
@@ -69,13 +151,36 @@ select:focus {
   background: rgba(216, 173, 120, 0.08);
 }
 
-.play-button,
-.copy-button {
-  border-color: rgba(201, 127, 158, 0.58);
-  background: var(--accent);
-  color: #1a1116;
+
+/* -------------------------------------------------
+   Seek
+   Primary accentとの関係を統一
+   ------------------------------------------------- */
+
+.seek-bar {
+  accent-color: var(--accent);
 }
 
-.song-time-copy {
-  background: rgba(15, 16, 20, 0.88);
-}
+
+/* -------------------------------------------------
+   Explicit no-image contract
+   ------------------------------------------------- */
+
+/*
+ * Do not add:
+ *
+ * background-image
+ * mask-image
+ * border-image
+ * content: url(...)
+ * data:image
+ * external image URLs
+ *
+ * Do not add visual motion:
+ *
+ * animation
+ * transition
+ * transform
+ * filter
+ * backdrop-filter
+ */
