@@ -19,6 +19,11 @@
   display: none;
 }
 
+/* Empty parking row for Copy disappears after the button is moved to the workflow row. */
+.copy-parking {
+  display: none;
+}
+
 /* OBJECT viewport: keep the lane itself fixed, enlarge vertical breathing room only. */
 .editor-panel .timeline-viewport {
   height: 168px;
@@ -154,10 +159,6 @@
   font-size: 9px;
 }
 
-.editor-panel .overview-head {
-  margin-top: 10px;
-}
-
 .editor-panel .seek-bar {
   margin-top: 4px;
   margin-bottom: 0;
@@ -257,28 +258,39 @@
 
 .workflow-queue-actions {
   display: flex;
+  align-items: center;
   gap: 6px;
 }
 
-.workflow-queue-button {
+.workflow-queue-button,
+.workflow-queue-actions .copy-button {
   min-height: 32px;
   padding: 0 11px;
-  border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--panel-2);
-  color: var(--text);
   font-size: 10px;
   font-weight: 800;
 }
 
+.workflow-queue-button {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.workflow-queue-actions .copy-button,
 .workflow-queue-button.export {
   border-color: var(--accent-border, rgba(201,127,158,.58));
   background: var(--accent);
   color: var(--accent-contrast, #1a1116);
 }
 
-.workflow-queue-button:disabled {
+.workflow-queue-button:disabled,
+.workflow-queue-actions .copy-button:disabled {
   opacity: .32;
+}
+
+.workflow-queue-message:empty {
+  display: none;
 }
 
 .workflow-queue-message {
@@ -287,10 +299,6 @@
   color: var(--muted);
   font-size: 9px;
   line-height: 1.45;
-}
-
-.workflow-queue-message:empty {
-  display: none;
 }
 
 .workflow-queue-message.warn {
@@ -309,8 +317,8 @@
 
 @media (max-width: 360px) {
   .editor-control-grid {
-    grid-template-columns: 154px minmax(8px, 1fr) 126px;
-    grid-template-rows: 27px 20px 27px;
+    grid-template-columns: 154px minmax(4px, 1fr) 132px;
+    grid-template-rows: 27px 17px 27px;
     column-gap: 4px;
   }
 
@@ -319,7 +327,7 @@
   }
 
   .editor-control-grid .mark-button {
-    width: 41px;
+    width: 42px;
     height: 26px;
   }
 
@@ -365,7 +373,8 @@
     gap: 4px;
   }
 
-  .workflow-queue-button {
+  .workflow-queue-button,
+  .workflow-queue-actions .copy-button {
     padding-left: 8px;
     padding-right: 8px;
     font-size: 9px;
