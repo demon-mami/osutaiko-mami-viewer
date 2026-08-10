@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#121217">
   <title>osu!taiko mami viewer</title>
-  <link rel="stylesheet" href="./style.css?v=20260810-2214">
+  <link rel="stylesheet" href="./style.css?v=20260811-0005">
 </head>
 <body>
   <main class="app-shell">
@@ -26,7 +26,7 @@
 
     <section class="editor-panel panel" aria-label="再生・ヒットポイント確認">
       <div class="timeline-toolbar">
-        <div class="timeline-title"><span class="label">OBJECT TIMELINE</span><span id="zoomLabel" class="zoom-label">±0.75s</span></div>
+        <div class="timeline-title"><span class="label">OBJECT TIMELINE</span><span id="zoomLabel" class="zoom-label">±0.5s</span></div>
         <div class="zoom-controls" aria-label="タイムライン拡大縮小"><button id="zoomOutButton" type="button" disabled aria-label="タイムラインを縮小">−</button><button id="zoomInButton" type="button" disabled aria-label="タイムラインを拡大">＋</button></div>
       </div>
       <div id="timelineViewport" class="timeline-viewport" aria-label="現在位置周辺のTaikoヒットポイント">
@@ -42,7 +42,7 @@
       <input id="seekBar" class="seek-bar" type="range" min="0" max="1" step="0.001" value="0" disabled aria-label="曲全体の再生位置">
 
       <div class="overview-head"><span class="label">SONG TIMELINE</span></div>
-      <div id="overviewViewport" class="overview-viewport" aria-label="曲全体のKiai・BPM・現在位置">
+      <div id="overviewViewport" class="overview-viewport" aria-label="曲全体のKiai・BPM・ノーツ密度・現在位置">
         <canvas id="overviewStaticCanvas" class="overview-static"></canvas><canvas id="overviewCursorCanvas" class="overview-cursor"></canvas>
         <button id="copyTimeButton" class="song-time-copy" type="button" disabled aria-label="現在時刻をコピー"><span id="timeDisplay">00:00:000</span></button>
       </div>
@@ -64,6 +64,6 @@
     <section class="error-panel panel" id="errorCard" hidden><strong>読み込みエラー</strong><p id="errorMessage"></p></section>
   </main>
   <script src="./vendor/jszip.min.js?v=3.10.1"></script>
-  <script src="./app-v3.js?v=20260810-2214"></script>
+  <script src="./app-v4.js?v=20260811-0005"></script>
 </body>
 </html>
