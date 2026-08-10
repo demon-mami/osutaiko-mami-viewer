@@ -1,0 +1,81 @@
+/*
+ * mami viewer
+ * Black Rose theme v1.0
+ * Visual-only / mobile-stable override
+ *
+ * Do not add layout, sizing, animation, transform,
+ * canvas geometry, or interaction changes here.
+ */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0d0e11;
+  --panel: #15161b;
+  --panel-2: #1b1c22;
+  --surface: #0f1014;
+
+  --line: #2c2e36;
+
+  --text: #f0eef1;
+  --muted: #96909a;
+
+  --accent: #c97f9e;
+  --accent-soft: rgba(201, 127, 158, 0.14);
+
+  --don: #eeb9b2;
+  --ka: #b0ccd7;
+
+  --range-start: #88c7a2;
+  --range-end: #d8ad78;
+
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+/* Existing hard-coded visual colors only */
+
+.native-file-input::file-selector-button {
+  border-color: rgba(201, 127, 158, 0.55);
+  background: var(--accent-soft);
+  color: #e9aec4;
+}
+
+select:focus {
+  border-color: rgba(201, 127, 158, 0.68);
+}
+
+.timeline-viewport,
+.overview-viewport {
+  border-color: var(--line);
+}
+
+.range-bar {
+  background: linear-gradient(
+    180deg,
+    #191a20 0%,
+    #15161b 100%
+  );
+}
+
+.mark-button.start.marked {
+  color: var(--range-start);
+  border-color: var(--range-start);
+  background: rgba(136, 199, 162, 0.08);
+}
+
+.mark-button.end.marked {
+  color: var(--range-end);
+  border-color: var(--range-end);
+  background: rgba(216, 173, 120, 0.08);
+}
+
+.play-button,
+.copy-button {
+  border-color: rgba(201, 127, 158, 0.58);
+  background: var(--accent);
+  color: #1a1116;
+}
+
+.song-time-copy {
+  background: rgba(15, 16, 20, 0.88);
+}
