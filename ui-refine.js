@@ -5,29 +5,26 @@
   const diffSelect = document.getElementById('difficultySelect');
   const viewport = document.getElementById('overviewViewport');
   const cursorCanvas = document.getElementById('overviewCursorCanvas');
+  const seek = document.getElementById('seekBar');
   const samplePolicy = document.getElementById('samplePolicy');
 
-  // This policy remains documented in code/README, but is not part of the normal UI.
   samplePolicy?.remove();
-
-  if (!input || !diffSelect || !viewport || !window.JSZip) return;
+  if (!input || !diffSelect || !viewport || !seek || !window.JSZip) return;
 
   const densityCanvas = document.createElement('canvas');
   densityCanvas.id = 'songDensityCanvas';
   densityCanvas.setAttribute('aria-hidden', 'true');
   densityCanvas.style.cssText = [
-    'position:absolute',
-    'inset:0',
-    'display:block',
-    'width:100%',
-    'height:100%',
-    'pointer-events:none',
-    'z-index:1',
-    'background:transparent',
+    'position:absolute','inset:0','display:block','width:100%','height:100%',
+    'pointer-events:none','z-index:1','background:transparent'
   ].join(';');
 
-  if (cursorCanvas) viewport.insertBefore(densityCanvas, cursorCanvas);
-  else viewport.appendChild(densityCanvas);
+  if (cursorCanvas) {
+    cursorCanvas.style.zIndex = '3';
+    viewport.insertBefore(densityCanvas, cursorCanvas);
+  } else {
+    viewport.appendChild(densityCanvas);
+  }
 
   let taikoMaps = [];
   let loadGeneration = 0;
@@ -51,14 +48,10 @@
     let section = '';
     let mode = -1;
     const hits = [];
-
     text.replace(/^\uFEFF/, '').split(/\r?\n/).forEach(raw => {
       const line = raw.trim();
       if (!line || line.startsWith('//')) return;
-      if (line[0] === '[' && line.endsWith(']')) {
-        section = line;
-        return;
-      }
+      if (line[0] === '[' && line.endsWith(']')) { section = line; return; }
       if (section === '[General]' && line.startsWith('Mode:')) {
         mode = Number.parseInt(line.slice(5).trim(), 10);
         return;
@@ -71,7 +64,6 @@
         if (Number.isFinite(time) && (type & 1) !== 0) hits.push(time);
       }
     });
-
     return { mode, hits };
   }
 
@@ -79,7 +71,6 @@
     const generation = ++loadGeneration;
     taikoMaps = [];
     drawDensity();
-
     try {
       const bytes = await file.arrayBuffer();
       const zip = await JSZip.loadAsync(bytes);
@@ -99,9 +90,8 @@
   function smoothedCounts(counts) {
     return counts.map((value, i) => {
       const a = counts[i - 1] ?? value;
-      const b = value;
       const c = counts[i + 1] ?? value;
-      return a * 0.2 + b * 0.6 + c * 0.2;
+      return a * 0.2 + value * 0.6 + c * 0.2;
     });
   }
 
@@ -114,7 +104,8 @@
     const active = taikoMaps[Number(diffSelect.value) || 0];
     if (!active || !active.hits.length) return;
 
-    const durationMs = Math.max(...active.hits, 1);
+    const audioDurationMs = Number(seek.max) > 1 ? Number(seek.max) * 1000 : 0;
+    const durationMs = Math.max(audioDurationMs, Math.max(...active.hits, 1));
     const bins = Math.max(28, Math.min(46, Math.floor(rect.width / 8)));
     const counts = new Array(bins).fill(0);
 
@@ -129,7 +120,6 @@
     const p90 = nonZero[Math.min(nonZero.length - 1, Math.floor((nonZero.length - 1) * 0.90))];
     const reference = Math.max(1, p90);
 
-    // Dedicated middle band: BPM labels stay above; time ticks stay below.
     const top = Math.max(21, rect.height * 0.28);
     const bottom = Math.min(rect.height - 25, rect.height * 0.67);
     const bandHeight = Math.max(14, bottom - top);
@@ -138,8 +128,7 @@
 
     ctx.fillStyle = 'rgba(255,255,255,.025)';
     ctx.fillRect(0, top, rect.width, bandHeight);
-
-    ctx.strokeStyle = 'rgba(233,101,165,.25)';
+    ctx.strokeStyle = 'rgba(233,101,165,.28)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, bottom + 0.5);
@@ -149,26 +138,23 @@
     const tops = [];
     for (let i = 0; i < bins; i++) {
       const ratio = Math.min(1, smooth[i] / reference);
-      const h = smooth[i] > 0 ? Math.max(2.5, Math.sqrt(ratio) * bandHeight) : 0;
+      const h = smooth[i] > 0 ? Math.max(3, Math.sqrt(ratio) * bandHeight) : 0;
       const x = i * step + (step - barWidth) / 2;
       const y = bottom - h;
       tops.push([i * step + step / 2, y]);
       if (!h) continue;
-      const alpha = 0.30 + ratio * 0.32;
+      const alpha = 0.34 + ratio * 0.34;
       ctx.fillStyle = `rgba(233,101,165,${alpha.toFixed(3)})`;
       ctx.fillRect(x, y, barWidth, h);
     }
 
-    ctx.strokeStyle = 'rgba(255,170,211,.72)';
-    ctx.lineWidth = 1.15;
+    ctx.strokeStyle = 'rgba(255,170,211,.78)';
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    tops.forEach(([x, y], i) => {
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
+    tops.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(255,183,216,.82)';
+    ctx.fillStyle = 'rgba(255,183,216,.88)';
     ctx.font = '800 7px -apple-system,BlinkMacSystemFont,sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
@@ -179,8 +165,8 @@
     const file = event.target.files && event.target.files[0];
     if (file && /\.osz$/i.test(file.name || '')) loadDensityData(file);
   });
-
   diffSelect.addEventListener('change', drawDensity);
+  new MutationObserver(drawDensity).observe(seek, { attributes: true, attributeFilter: ['max'] });
   window.addEventListener('resize', drawDensity);
   window.addEventListener('orientationchange', drawDensity);
 })();
