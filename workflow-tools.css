@@ -1,0 +1,72 @@
+/* mami viewer - continuous workflow / object hit lane UI */
+
+.workflow-queue-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.workflow-queue-count {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.workflow-queue-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.workflow-queue-button {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.workflow-queue-button.export {
+  border-color: var(--accent-border, rgba(201,127,158,.58));
+  background: var(--accent);
+  color: var(--accent-contrast, #1a1116);
+}
+
+.workflow-queue-button:disabled {
+  opacity: .32;
+}
+
+.workflow-queue-message {
+  min-height: 15px;
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.workflow-queue-message.warn {
+  color: var(--range-end);
+}
+
+.workflow-queue-message.ok {
+  color: var(--range-start);
+}
+
+@media (max-width: 360px) {
+  .workflow-queue-bar {
+    align-items: flex-end;
+  }
+  .workflow-queue-actions {
+    gap: 4px;
+  }
+  .workflow-queue-button {
+    padding-left: 8px;
+    padding-right: 8px;
+    font-size: 9px;
+  }
+}
