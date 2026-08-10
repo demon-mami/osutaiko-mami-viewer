@@ -18,6 +18,7 @@
   if (!input || !diff || !timelineViewport || !seek || !outputPanel || !window.JSZip) return;
 
   const HASH_PREFIX = 'sha256:';
+  const POST_HIT_FADE_MS = 110;
   const loadedExactHashes = new Set();
   const loadedMapFingerprints = new Set();
   const decidedFingerprints = new Set();
@@ -260,21 +261,6 @@
     return ctx;
   }
 
-  function kiaiIntervals(map, duration) {
-    const out = [];
-    let on = false;
-    let start = null;
-    for (const tp of map.timing) {
-      const next = (tp.effects & 1) !== 0;
-      if (next === on) continue;
-      if (on && start !== null && tp.time > start) out.push({ start, end: tp.time });
-      on = next;
-      start = next ? tp.time : null;
-    }
-    if (on && start !== null) out.push({ start, end: duration });
-    return out;
-  }
-
   function renderObjectOverlay() {
     const rect = timelineViewport.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
@@ -297,18 +283,10 @@
     const normalRadius = 19;
     const bigRadius = normalRadius * 1.34;
 
-    // Back layer: dark note lane. It also masks the old centered notes underneath.
+    // Back layer: dark note lane. This intentionally masks all underlying Kiai tint
+    // inside the lane, so Kiai remains visible only in the upper/lower bands.
     ctx.fillStyle = '#121214';
     ctx.fillRect(0, laneTop, rect.width, laneHeight);
-
-    for (const range of kiaiIntervals(map, duration)) {
-      const x1 = Math.max(0, xForTime(range.start));
-      const x2 = Math.min(rect.width, xForTime(range.end));
-      if (x2 > x1) {
-        ctx.fillStyle = 'rgba(244,220,125,.08)';
-        ctx.fillRect(x1, laneTop, x2 - x1, laneHeight);
-      }
-    }
 
     ctx.strokeStyle = 'rgba(255,255,255,.08)';
     ctx.lineWidth = 1;
@@ -319,30 +297,45 @@
     ctx.lineTo(rect.width, laneBottom + 0.5);
     ctx.stroke();
 
-    // Notes layer.
+    // Notes layer. A note reaches hitX exactly at its HitObject time. After that
+    // moment only, it shrinks and fades up-left for a short, deterministic tail.
     const don = getComputedStyle(document.documentElement).getPropertyValue('--don').trim() || '#eeb9b2';
     const ka = getComputedStyle(document.documentElement).getPropertyValue('--ka').trim() || '#b0ccd7';
-    const visibleLeftTime = nowMs - hitX / pxPerMs - 50;
+    const visibleLeftTime = nowMs - POST_HIT_FADE_MS;
     const visibleRightTime = nowMs + (rect.width - hitX) / pxPerMs + 50;
     for (const hit of map.hits) {
       if (hit.time < visibleLeftTime) continue;
       if (hit.time > visibleRightTime) break;
-      const x = xForTime(hit.time);
-      const radius = hit.big ? bigRadius : normalRadius;
+
+      const ageMs = nowMs - hit.time;
+      const postHit = ageMs > 0;
+      const progress = postHit ? Math.min(1, ageMs / POST_HIT_FADE_MS) : 0;
+      if (postHit && progress >= 1) continue;
+
+      const baseRadius = hit.big ? bigRadius : normalRadius;
+      const scale = postHit ? 1 - 0.65 * progress : 1;
+      const alpha = postHit ? 1 - progress : 1;
+      const x = postHit ? hitX - 12 * progress : xForTime(hit.time);
+      const y = postHit ? noteY - 12 * progress : noteY;
+      const radius = baseRadius * scale;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = hit.kind === 'ka' ? ka : don;
-      ctx.strokeStyle = 'rgba(255,255,255,.88)';
-      ctx.lineWidth = hit.big ? 3 : 2;
+      ctx.strokeStyle = 'rgba(255,255,255,.96)';
+      ctx.lineWidth = hit.big ? 3.2 : 2.4;
       ctx.beginPath();
-      ctx.arc(x, noteY, radius, 0, Math.PI * 2);
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
       if (hit.big) {
-        ctx.strokeStyle = 'rgba(255,255,255,.24)';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255,255,255,.30)';
+        ctx.lineWidth = 2.1;
         ctx.beginPath();
-        ctx.arc(x, noteY, radius + 5, 0, Math.PI * 2);
+        ctx.arc(x, y, radius + 5 * scale, 0, Math.PI * 2);
         ctx.stroke();
       }
+      ctx.restore();
     }
 
     // Front layer: fixed hit target / approach-circle style ring.
