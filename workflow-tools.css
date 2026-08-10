@@ -5,6 +5,105 @@
   display: none;
 }
 
+/* Compact editor layout: timelines first, controls below */
+.editor-control-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(118px, .88fr);
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 7px;
+  margin: 8px 10px 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.editor-control-grid .range-inline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.editor-control-grid .mark-button {
+  width: 58px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 7px;
+  font-size: 9px;
+}
+
+.editor-control-grid .range-length-box {
+  min-width: 0;
+  padding: 0;
+  text-align: right;
+}
+
+.editor-control-grid .range-length-box strong {
+  display: block;
+  margin: 0;
+  color: var(--text);
+  font: 800 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  white-space: nowrap;
+}
+
+.editor-control-grid .transport-row {
+  display: grid;
+  grid-template-columns: 44px 38px 44px;
+  align-items: center;
+  justify-content: start;
+  gap: 5px;
+  width: auto;
+  margin: 0;
+}
+
+.editor-control-grid .transport-button,
+.editor-control-grid .play-button {
+  min-width: 0;
+  height: 32px;
+  padding: 0;
+}
+
+.editor-control-grid .transport-button {
+  width: 44px;
+  font-size: 10px;
+}
+
+.editor-control-grid .play-button {
+  width: 38px;
+  font-size: 13px;
+}
+
+.compact-zoom {
+  display: grid;
+  grid-template-columns: 30px minmax(48px, 1fr) 30px;
+  align-items: center;
+  justify-self: stretch;
+  gap: 4px;
+}
+
+.compact-zoom button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 14px;
+}
+
+.compact-zoom .zoom-label {
+  text-align: center;
+  white-space: nowrap;
+  font-size: 9px;
+}
+
+.editor-panel .overview-head {
+  margin-top: 10px;
+}
+
+.editor-panel .seek-bar {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
 .workflow-completed {
   margin-top: 9px;
   border-top: 1px solid var(--line);
@@ -140,12 +239,45 @@
 }
 
 @media (max-width: 360px) {
+  .editor-control-grid {
+    grid-template-columns: minmax(0, 1fr) 112px;
+    column-gap: 6px;
+  }
+
+  .editor-control-grid .mark-button {
+    width: 52px;
+  }
+
+  .editor-control-grid .transport-row {
+    grid-template-columns: 40px 36px 40px;
+    gap: 4px;
+  }
+
+  .editor-control-grid .transport-button {
+    width: 40px;
+  }
+
+  .editor-control-grid .play-button {
+    width: 36px;
+  }
+
+  .compact-zoom {
+    grid-template-columns: 28px minmax(44px, 1fr) 28px;
+    gap: 3px;
+  }
+
+  .compact-zoom button {
+    width: 28px;
+  }
+
   .workflow-queue-bar {
     align-items: flex-end;
   }
+
   .workflow-queue-actions {
     gap: 4px;
   }
+
   .workflow-queue-button {
     padding-left: 8px;
     padding-right: 8px;
