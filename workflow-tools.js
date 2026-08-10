@@ -54,7 +54,7 @@
 
   const queueMessage = document.createElement('p');
   queueMessage.className = 'workflow-queue-message';
-  queueMessage.textContent = '各OSZの設定後に「決定」、全件終了後に「TXT出力」。';
+  queueMessage.textContent = '';
 
   outputPanel.appendChild(queueBar);
   outputPanel.appendChild(queueMessage);
