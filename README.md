@@ -6,8 +6,8 @@ GitHub Pages向け、モバイル優先のosu!taiko区間確認ビューアで�
 - `.osz / .OSZ` を端末内だけで展開・解析
 - **Mode:1 (osu!taiko) のみ対応**。Mode:1が無いOSZは読み込み停止
 - osu!taiko難易度選択 + `xxxx hits`
-- OBJECT TIMELINE: ±0.75 / ±0.5 / ±0.25
-- SONG TIMELINE: Kiai / BPM変化 / 時間目盛り / 現在位置 / START / END
+- OBJECT TIMELINE: ±0.5 / ±0.4 / ±0.3
+- SONG TIMELINE: Kiai / BPM変化 / 時間目盛り / ノーツ密度 / 現在位置 / START / END
 - START / ENDは1回タップで追加、もう1回タップで解除
 - START-ENDの区間長をミリ秒精度で表示
 - 用途 / 難易度 / 区間 / Fade-in/outをまとめてコピー
@@ -29,6 +29,19 @@ Native `AudioContext.prototype.getOutputTimestamp`は変更しません。
 Viewer専用のvisual clockでは、native `getOutputTimestamp()`が返す`contextTime` / `performanceTime`のペアを保持し、`performance.now()`との差分でoutput sample frameのContext時刻を補間します。Native timestampを利用できない場合のみ`outputLatency`をfallbackとして使用します。
 
 再生中のOBJECT TIMELINEにはCSS easing/transitionを掛けず、毎frameのaudible positionを直接描画座標へ反映します。Canvasの`getImageData()`によるcursor位置逆算は使用しません。描画用`requestAnimationFrame`はViewer本体の1本です。
+
+## Timeline表示
+### OBJECT TIMELINE
+- Zoom: **±0.5 / ±0.4 / ±0.3**
+- 初期表示: **±0.5**
+- ±0.5時の通常ノーツ半径は約19px。従来より少しだけ小さく調整
+- 大ノーツは通常ノーツの約1.34倍
+
+### SONG TIMELINE
+- 曲全体を複数binへ分け、各binのHitObject数を薄い棒グラフとして表示
+- 高密度区間ほど棒が高くなる
+- 極端な局所ピークで他区間が潰れないよう、90パーセンタイルを基準に高さを正規化
+- Kiai / BPM / 時間目盛り / START / ENDを邪魔しない中央帯だけを使用
 
 ## Hitsound仕様
 - 小Don → `hitnormal`
