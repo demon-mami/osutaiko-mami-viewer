@@ -85,22 +85,22 @@
     seek.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  // Replace ±5s behavior without touching the audio engine.
-  if (backButton) backButton.textContent = '−4s';
-  if (forwardButton) forwardButton.textContent = '+4s';
+  // Keep the established ±5 second transport while using the same core seek path.
+  if (backButton) backButton.textContent = '−5s';
+  if (forwardButton) forwardButton.textContent = '+5s';
 
   backButton?.addEventListener('click', event => {
     if (backButton.disabled) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    seekThroughCore((Number(seek?.value) || 0) - 4);
+    seekThroughCore((Number(seek?.value) || 0) - 5);
   }, true);
 
   forwardButton?.addEventListener('click', event => {
     if (forwardButton.disabled) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    seekThroughCore((Number(seek?.value) || 0) + 4);
+    seekThroughCore((Number(seek?.value) || 0) + 5);
   }, true);
 
   let v1Sec = null;
