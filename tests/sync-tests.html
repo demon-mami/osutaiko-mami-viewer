@@ -39,6 +39,22 @@
           ok(`impulse placed at ${t}ms`,data[frame]===1,`frame=${frame} value=${data[frame]}`);
           ok(`frame before ${t}ms remains zero`,frame===0||data[frame-1]===0,frame===0?'':`value=${data[frame-1]}`);
         }
+
+        const customDon=ac.createBuffer(1,1,sr);
+        const customKa=ac.createBuffer(1,1,sr);
+        customDon.getChannelData(0)[0]=0.25;
+        customKa.getChannelData(0)[0]=0.5;
+        const customMap={hits:[
+          {time:1500,kind:'don',family:'normal',sampleName:'hitnormal',volume:100},
+          {time:1750,kind:'ka',family:'normal',sampleName:'hitnormal',volume:100}
+        ]};
+        const customEffect=await api.buildEffectBuffer(
+          customMap,music,hs,ac,new Map([['don',customDon],['ka',customKa]])
+        );
+        const customData=customEffect.getChannelData(0);
+        ok('custom Don overrides built-in',customData[api.hitTimeToFrame(1500,sr)]===0.25,`value=${customData[api.hitTimeToFrame(1500,sr)]}`);
+        ok('custom Ka overrides built-in',customData[api.hitTimeToFrame(1750,sr)]===0.5,`value=${customData[api.hitTimeToFrame(1750,sr)]}`);
+
         try{await ac.close();}catch{}
       }else{
         out.push('SKIP  AudioContext unavailable: impulse placement test');
