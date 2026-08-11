@@ -1,17 +1,41 @@
-/* Fine layout adjustments: keep the three-column structure, tighten middle controls. */
+/* Fine layout adjustments: swap left/middle controls and keep clean column spacing. */
 
+.editor-control-grid {
+  grid-template-columns: minmax(100px, .92fr) minmax(112px, 1fr) 102px;
+  column-gap: 10px;
+}
+
+/* Left column: V1 / V2 and their jump arrows. */
 .editor-control-grid .range-inline,
 .mark-jumps {
-  width: calc(100% - 18px);
+  grid-column: 1;
+  width: calc(100% - 12px);
   justify-self: center;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 6px;
 }
 
+/* Middle column: Play on rows 1-2, -4s / +4s on row 3. */
+.editor-control-grid .transport-row {
+  grid-column: 2;
+  width: 100%;
+}
+
+/* Right column stays unchanged: range length / breathing room / zoom. */
+.editor-control-grid .range-length-box,
+.compact-zoom {
+  grid-column: 3;
+}
+
 @media (max-width: 360px) {
+  .editor-control-grid {
+    grid-template-columns: 92px 106px 86px;
+    column-gap: 7px;
+  }
+
   .editor-control-grid .range-inline,
   .mark-jumps {
-    width: calc(100% - 12px);
+    width: calc(100% - 10px);
     gap: 4px;
   }
 }
