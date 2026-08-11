@@ -29,50 +29,51 @@
   height: 168px;
 }
 
-/* Three-row editor control layout.
+/* Three-row / three-column editor controls.
    left rows 1-3   = transport
-   middle rows 1-3 = intentional breathing room
-   right row 1     = V1 / V2
-   right row 2     = range length
+   middle rows 1-2 = large V1 / V2
+   middle row 3    = V1 / V2 jump arrows
+   right row 1     = range length
+   right row 2     = breathing room
    right row 3     = object zoom
 */
 .editor-control-grid {
   display: grid;
-  grid-template-columns: 175px minmax(16px, 1fr) 132px;
-  grid-template-rows: 28px 22px 28px;
-  align-items: center;
-  column-gap: 6px;
-  row-gap: 3px;
+  grid-template-columns: 164px minmax(96px, 1fr) 108px;
+  grid-template-rows: 30px 26px 28px;
+  align-items: stretch;
+  column-gap: 5px;
+  row-gap: 4px;
   margin: 9px 10px 0;
   padding-top: 9px;
   padding-bottom: 2px;
   border-top: 1px solid var(--line);
 }
 
-/* V1 / V2: preserve START/END behavior internally and replace only visible labels. */
+/* V1 / V2: preserve START/END behavior internally, enlarge across two rows. */
 .editor-control-grid .range-inline {
-  grid-column: 3;
-  grid-row: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  justify-self: stretch;
-  gap: 5px;
+  grid-column: 2;
+  grid-row: 1 / 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  justify-items: stretch;
+  gap: 6px;
   min-width: 0;
   padding: 0;
 }
 
 .editor-control-grid .mark-button {
-  width: 45px;
+  width: 100%;
   min-width: 0;
-  height: 27px;
+  height: 100%;
   padding: 0;
   font-size: 0;
 }
 
 .editor-control-grid .mark-button::after {
   display: block;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 850;
   line-height: 1;
 }
@@ -85,13 +86,41 @@
   content: "V2";
 }
 
+/* Jump arrows sit directly below V1 / V2. */
+.mark-jumps {
+  grid-column: 2;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 6px;
+}
+
+.mark-jump-button {
+  min-width: 0;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.mark-jump-button:disabled {
+  opacity: .32;
+}
+
+/* Range length: right / row 1 only. */
 .editor-control-grid .range-length-box {
   grid-column: 3;
-  grid-row: 2;
+  grid-row: 1;
   width: 100%;
   min-width: 0;
   padding: 0;
   text-align: center;
+  align-self: center;
   justify-self: stretch;
 }
 
@@ -103,12 +132,12 @@
   white-space: nowrap;
 }
 
-/* Main transport: dominant, using the full three-row vertical block. */
+/* Main transport remains dominant on the left across all three rows. */
 .editor-control-grid .transport-row {
   grid-column: 1;
   grid-row: 1 / 4;
   display: grid;
-  grid-template-columns: 60px 50px 60px;
+  grid-template-columns: 54px 46px 54px;
   align-items: center;
   justify-content: start;
   align-self: stretch;
@@ -120,17 +149,17 @@
 .editor-control-grid .transport-button,
 .editor-control-grid .play-button {
   min-width: 0;
-  height: 48px;
+  height: 50px;
   padding: 0;
 }
 
 .editor-control-grid .transport-button {
-  width: 60px;
+  width: 54px;
   font-size: 11px;
 }
 
 .editor-control-grid .play-button {
-  width: 50px;
+  width: 46px;
   font-size: 16px;
 }
 
@@ -317,18 +346,24 @@
 
 @media (max-width: 360px) {
   .editor-control-grid {
-    grid-template-columns: 154px minmax(4px, 1fr) 132px;
-    grid-template-rows: 27px 17px 27px;
-    column-gap: 4px;
+    grid-template-columns: 142px minmax(78px, 1fr) 90px;
+    grid-template-rows: 28px 24px 27px;
+    column-gap: 3px;
+    row-gap: 3px;
   }
 
-  .editor-control-grid .range-inline {
+  .editor-control-grid .range-inline,
+  .mark-jumps {
     gap: 4px;
   }
 
-  .editor-control-grid .mark-button {
-    width: 42px;
-    height: 26px;
+  .editor-control-grid .mark-button::after {
+    font-size: 11px;
+  }
+
+  .mark-jump-button {
+    height: 27px;
+    font-size: 13px;
   }
 
   .editor-control-grid .range-length-box strong {
@@ -336,33 +371,37 @@
   }
 
   .editor-control-grid .transport-row {
-    grid-template-columns: 50px 46px 50px;
+    grid-template-columns: 46px 42px 46px;
     gap: 4px;
   }
 
   .editor-control-grid .transport-button,
   .editor-control-grid .play-button {
-    height: 45px;
+    height: 47px;
   }
 
   .editor-control-grid .transport-button {
-    width: 50px;
+    width: 46px;
     font-size: 10px;
   }
 
   .editor-control-grid .play-button {
-    width: 46px;
+    width: 42px;
     font-size: 15px;
   }
 
   .compact-zoom {
-    grid-template-columns: 25px 44px 25px;
+    grid-template-columns: 23px 40px 23px;
     gap: 2px;
   }
 
   .compact-zoom button {
-    width: 25px;
+    width: 23px;
     height: 26px;
+  }
+
+  .compact-zoom .zoom-label {
+    font-size: 8px;
   }
 
   .workflow-queue-bar {
