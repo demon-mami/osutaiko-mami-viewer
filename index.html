@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="./style.css?v=20260811-0015">
   <link rel="stylesheet" href="./theme-black-rose.css?v=1.3">
   <link rel="stylesheet" href="./workflow-tools.css?v=20260811-0955">
-  <link rel="stylesheet" href="./layout-adjustments.css?v=20260811-1029">
+  <link rel="stylesheet" href="./layout-adjustments.css?v=20260811-1608">
 </head>
 <body>
   <main class="app-shell">
@@ -22,6 +22,10 @@
         <p id="fileName" class="file-name"></p>
       </div>
       <label class="difficulty-field"><select id="difficultySelect" disabled><option>OSZを読み込んでください</option></select></label>
+      <div class="hitsound-pickers" aria-label="Hitsound選択">
+        <label class="hitsound-picker"><span>Don</span><input id="donHitsoundInput" type="file" accept="audio/*" aria-label="Don hitsoundを選択"></label>
+        <label class="hitsound-picker"><span>Ka</span><input id="kaHitsoundInput" type="file" accept="audio/*" aria-label="Ka hitsoundを選択"></label>
+      </div>
       <div class="song-line"><strong id="songTitle">—</strong><span id="songMeta">—</span></div>
     </section>
 
@@ -72,7 +76,7 @@ Type：—
     <section class="error-panel panel" id="errorCard" hidden><strong>読み込みエラー</strong><p id="errorMessage"></p></section>
   </main>
   <script src="./vendor/jszip.min.js?v=3.10.1"></script>
-  <script src="./app-v4.js?v=20260811-0015"></script>
+  <script src="./app-v4.js?v=20260811-1608"></script>
   <script src="./ui-refine.js?v=20260811-0015"></script>
   <script src="./workflow-tools.js?v=20260811-0837"></script>
   <script src="./action-layout.js?v=20260811-1002"></script>
