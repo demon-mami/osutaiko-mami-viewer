@@ -30,7 +30,8 @@
 }
 
 /* Three-row / three-column editor controls.
-   left rows 1-3   = transport
+   left rows 1-2   = large Play
+   left row 3      = -5s / +5s
    middle rows 1-2 = large V1 / V2
    middle row 3    = V1 / V2 jump arrows
    right row 1     = range length
@@ -39,7 +40,7 @@
 */
 .editor-control-grid {
   display: grid;
-  grid-template-columns: 164px minmax(96px, 1fr) 108px;
+  grid-template-columns: 112px minmax(112px, 1fr) 102px;
   grid-template-rows: 30px 26px 28px;
   align-items: stretch;
   column-gap: 5px;
@@ -132,35 +133,45 @@
   white-space: nowrap;
 }
 
-/* Main transport remains dominant on the left across all three rows. */
+/* Left transport: Play owns rows 1-2; -5s/+5s share row 3. */
 .editor-control-grid .transport-row {
   grid-column: 1;
   grid-row: 1 / 4;
   display: grid;
-  grid-template-columns: 54px 46px 54px;
-  align-items: center;
-  justify-content: start;
-  align-self: stretch;
-  gap: 5px;
-  width: auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: 30px 26px 28px;
+  align-items: stretch;
+  gap: 4px 6px;
+  width: 100%;
   margin: 0;
 }
 
-.editor-control-grid .transport-button,
 .editor-control-grid .play-button {
+  grid-column: 1 / 3;
+  grid-row: 1 / 3;
+  width: 100%;
   min-width: 0;
-  height: 50px;
+  height: 100%;
   padding: 0;
+  font-size: 20px;
 }
 
 .editor-control-grid .transport-button {
-  width: 54px;
-  font-size: 11px;
+  min-width: 0;
+  width: 100%;
+  height: 28px;
+  padding: 0;
+  font-size: 10px;
 }
 
-.editor-control-grid .play-button {
-  width: 46px;
-  font-size: 16px;
+#backButton {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+#forwardButton {
+  grid-column: 2;
+  grid-row: 3;
 }
 
 /* Small zoom control: right / row 3. */
@@ -346,7 +357,7 @@
 
 @media (max-width: 360px) {
   .editor-control-grid {
-    grid-template-columns: 142px minmax(78px, 1fr) 90px;
+    grid-template-columns: 100px minmax(100px, 1fr) 88px;
     grid-template-rows: 28px 24px 27px;
     column-gap: 3px;
     row-gap: 3px;
@@ -371,23 +382,17 @@
   }
 
   .editor-control-grid .transport-row {
-    grid-template-columns: 46px 42px 46px;
-    gap: 4px;
+    grid-template-rows: 28px 24px 27px;
+    gap: 3px 4px;
   }
 
-  .editor-control-grid .transport-button,
   .editor-control-grid .play-button {
-    height: 47px;
+    font-size: 18px;
   }
 
   .editor-control-grid .transport-button {
-    width: 46px;
-    font-size: 10px;
-  }
-
-  .editor-control-grid .play-button {
-    width: 42px;
-    font-size: 15px;
+    height: 27px;
+    font-size: 9px;
   }
 
   .compact-zoom {
