@@ -24,6 +24,7 @@
   const el = {
     oszInput: $('oszInput'), fileName: $('fileName'), status: $('statusBadge'),
     diff: $('difficultySelect'), songTitle: $('songTitle'), songMeta: $('songMeta'), samplePolicy: $('samplePolicy'),
+    donHsInput: $('donHitsoundInput'), kaHsInput: $('kaHitsoundInput'),
     time: $('timeDisplay'), copyTime: $('copyTimeButton'),
     start: $('startMarkButton'), end: $('endMarkButton'), length: $('rangeLength'),
     back: $('backButton'), play: $('playButton'), fwd: $('forwardButton'), seek: $('seekBar'),
@@ -48,6 +49,7 @@
   let effectBuffer = null;
   let musicName = '';
   let hsBuffers = new Map();
+  let customHsBuffers = new Map();
   let hsLoadPromise = null;
   let musicGain = null;
   let effectGain = null;
@@ -320,13 +322,14 @@
     return Math.round(timeMs / 1000 * sampleRate);
   }
 
-  async function buildEffectBuffer(activeMap, music, buffers, audioContext) {
+  async function buildEffectBuffer(activeMap, music, buffers, audioContext, customBuffers = null) {
     const sr = audioContext.sampleRate;
     const channels = music.numberOfChannels;
     const effect = audioContext.createBuffer(channels, music.length, sr);
     let hitIndex = 0;
     for (const hit of activeMap.hits) {
-      const hs = buffers.get(`${hit.family}:${hit.sampleName}`) || buffers.get(`normal:${hit.sampleName}`);
+      const custom = customBuffers?.get(hit.kind);
+      const hs = custom || buffers.get(`${hit.family}:${hit.sampleName}`) || buffers.get(`normal:${hit.sampleName}`);
       if (hs) {
         const nominalStart = hitTimeToFrame(hit.time, sr);
         if (nominalStart < effect.length) {
@@ -530,7 +533,43 @@
     if (!map || !musicBuffer) return;
     setStatus('Hitsound生成中');
     await loadHitsounds();
-    effectBuffer = await buildEffectBuffer(map, musicBuffer, hsBuffers, ac);
+    effectBuffer = await buildEffectBuffer(map, musicBuffer, hsBuffers, ac, customHsBuffers);
+  }
+
+  async function loadCustomHitsound(kind, file) {
+    if (!file) return;
+    const label = kind === 'ka' ? 'Ka' : 'Don';
+    const input = kind === 'ka' ? el.kaHsInput : el.donHsInput;
+    clearError();
+    try {
+      await ensureContext(false);
+      const raw = await file.arrayBuffer();
+      const decoded = await ac.decodeAudioData(raw.slice(0));
+      const nextCustom = new Map(customHsBuffers);
+      nextCustom.set(kind, decoded);
+
+      if (map && musicBuffer) {
+        const position = playing ? enginePosition() : pausedOffset;
+        stopSources();
+        pausedOffset = clampSec(position);
+        setControls(false);
+        setStatus(`${label} Hitsound反映中`);
+        await loadHitsounds();
+        const rebuilt = await buildEffectBuffer(map, musicBuffer, hsBuffers, ac, nextCustom);
+        effectBuffer = rebuilt;
+        customHsBuffers = nextCustom;
+        if (el.seek) el.seek.value = String(pausedOffset);
+        setControls(true);
+        syncVisualToPosition();
+        setStatus('準備完了');
+      } else {
+        customHsBuffers = nextCustom;
+      }
+    } catch (error) {
+      if (input) input.value = '';
+      if (map && musicBuffer && effectBuffer) setControls(true);
+      fail(error instanceof Error ? `${label} Hitsoundを読み込めません: ${error.message}` : `${label} Hitsoundを読み込めませんでした。`);
+    }
   }
 
   function setControls(enabled) {
@@ -1026,6 +1065,14 @@
   el.oszInput?.addEventListener('change', async event => {
     const file = event.target.files && event.target.files[0];
     if (file) await loadOsz(file);
+  });
+  el.donHsInput?.addEventListener('change', async event => {
+    const file = event.target.files && event.target.files[0];
+    if (file) await loadCustomHitsound('don', file);
+  });
+  el.kaHsInput?.addEventListener('change', async event => {
+    const file = event.target.files && event.target.files[0];
+    if (file) await loadCustomHitsound('ka', file);
   });
   el.diff?.addEventListener('change', () => useMap(Number(el.diff.value)));
   el.play?.addEventListener('click', async () => {
