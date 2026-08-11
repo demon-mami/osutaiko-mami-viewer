@@ -1,0 +1,17 @@
+/* Fine layout adjustments: keep the three-column structure, tighten middle controls. */
+
+.editor-control-grid .range-inline,
+.mark-jumps {
+  width: calc(100% - 18px);
+  justify-self: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+}
+
+@media (max-width: 360px) {
+  .editor-control-grid .range-inline,
+  .mark-jumps {
+    width: calc(100% - 12px);
+    gap: 4px;
+  }
+}
