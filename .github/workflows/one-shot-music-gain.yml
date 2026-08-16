@@ -1,0 +1,45 @@
+name: One-shot music gain update
+
+on:
+  push:
+    paths:
+      - '.github/workflows/one-shot-music-gain.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update gain and cache key
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          app = Path('app-v4.js')
+          text = app.read_text(encoding='utf-8')
+          old = 'const MUSIC_GAIN = 0.80;'
+          new = 'const MUSIC_GAIN = 0.60;'
+          if old not in text:
+              raise SystemExit('Expected MUSIC_GAIN 0.80 not found')
+          app.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          index = Path('index.html')
+          html = index.read_text(encoding='utf-8')
+          html, count = re.subn(r'app-v4\\.js\\?v=[^\"\']+', 'app-v4.js?v=20260817-0518', html, count=1)
+          if count != 1:
+              raise SystemExit('app-v4 cache key not found')
+          index.write_text(html, encoding='utf-8')
+
+          Path('.github/workflows/one-shot-music-gain.yml').unlink()
+          PY
+      - name: Commit update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app-v4.js index.html .github/workflows/one-shot-music-gain.yml
+          git commit -m "Set music gain to 0.60"
+          git push
