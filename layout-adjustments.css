@@ -37,17 +37,18 @@
 
 .hitsound-picker {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr) 30px;
   align-items: center;
   gap: 6px;
   min-width: 0;
 }
 
 .hitsound-picker > span {
-  color: var(--muted);
-  font-size: 9px;
+  color: var(--text);
+  font-size: 15px;
   font-weight: 850;
-  letter-spacing: .03em;
+  line-height: 1;
+  text-align: center;
 }
 
 .hitsound-picker input[type="file"] {
@@ -68,6 +69,22 @@
   font: 800 9px/1 -apple-system,BlinkMacSystemFont,sans-serif;
 }
 
+.hitsound-preview-button {
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.hitsound-preview-button:disabled {
+  opacity: .32;
+}
+
 @media (max-width: 360px) {
   .editor-control-grid {
     grid-template-columns: 92px 106px 86px;
@@ -85,13 +102,22 @@
   }
 
   .hitsound-picker {
-    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-columns: 20px minmax(0, 1fr) 27px;
     gap: 4px;
   }
 
-  .hitsound-picker > span,
+  .hitsound-picker > span {
+    font-size: 13px;
+  }
+
   .hitsound-picker input[type="file"],
   .hitsound-picker input[type="file"]::file-selector-button {
     font-size: 8px;
+  }
+
+  .hitsound-preview-button {
+    width: 27px;
+    height: 27px;
+    font-size: 10px;
   }
 }
