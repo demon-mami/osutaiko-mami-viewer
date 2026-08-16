@@ -5,7 +5,8 @@
   const ZOOM_LABELS = ['±0.5s', '±0.4s', '±0.3s'];
   const OBJECT_NOTE_RADIUS = [19, 19, 18.5];
   const START_DELAY_SEC = 0.10;
-  const EFFECT_GAIN = 0.80;
+  const MUSIC_GAIN = 0.80;
+  const EFFECT_GAIN = 1.00;
   const DEBUG_REFRESH_MS = 250;
   const DEBUG_MODE = new URLSearchParams(location.search).get('debug') === '1';
 
@@ -369,14 +370,15 @@
       musicGain = ac.createGain();
       effectGain = ac.createGain();
       masterGain = ac.createGain();
-      musicGain.gain.value = 1;
+      musicGain.gain.value = MUSIC_GAIN;
       effectGain.gain.value = EFFECT_GAIN;
       masterGain.gain.value = 1;
       musicGain.connect(masterGain);
       effectGain.connect(masterGain);
       masterGain.connect(ac.destination);
-    } else if (effectGain) {
-      effectGain.gain.value = EFFECT_GAIN;
+    } else {
+      if (musicGain) musicGain.gain.value = MUSIC_GAIN;
+      if (effectGain) effectGain.gain.value = EFFECT_GAIN;
     }
     if (resume && ac.state === 'suspended') await ac.resume();
     return ac;
