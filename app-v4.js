@@ -5,7 +5,7 @@
   const ZOOM_LABELS = ['±0.5s', '±0.4s', '±0.3s'];
   const OBJECT_NOTE_RADIUS = [19, 19, 18.5];
   const START_DELAY_SEC = 0.10;
-  const MUSIC_GAIN = 0.80;
+  const MUSIC_GAIN = 0.60;
   const EFFECT_GAIN = 1.00;
   const DEBUG_REFRESH_MS = 250;
   const DEBUG_MODE = new URLSearchParams(location.search).get('debug') === '1';
