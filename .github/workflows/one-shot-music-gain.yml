@@ -29,7 +29,7 @@ jobs:
 
           index = Path('index.html')
           html = index.read_text(encoding='utf-8')
-          html, count = re.subn(r'app-v4\\.js\\?v=[^\"\']+', 'app-v4.js?v=20260817-0518', html, count=1)
+          html, count = re.subn(r'app-v4\.js\?v=[^"\']+', 'app-v4.js?v=20260817-0518', html, count=1)
           if count != 1:
               raise SystemExit('app-v4 cache key not found')
           index.write_text(html, encoding='utf-8')
